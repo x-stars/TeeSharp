@@ -14,7 +14,7 @@
     <Authors>XstarS</Authors>
     <Company>XstarS</Company>
     <Version>1.0.0</Version>
-    <Product>Tee by .NET</Product>
+    <Product>.NET tee</Product>
     <AssemblyTitle>$(Product) CLI</AssemblyTitle>
     <Copyright>Copyright © $(Company) 2023</Copyright>
     <FileVersion>$(Version.Split('-')[0]).0</FileVersion>

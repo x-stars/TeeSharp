@@ -1,11 +1,11 @@
 # TeeSharp
 
-A **toy** implementation of the `tee` tool by .NET.
+A **toy** implementation of the `tee` tool in .NET.
 
 Features:
 
 * Asynchronous I/O
-* Concurrent output
+* Parallel output
 * Multi-platform support
 * Native AOT compiling
 
