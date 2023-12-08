@@ -19,15 +19,29 @@ if (cmdOpts.Help)
 var stdin = Console.OpenStandardInput();
 var stdout = Console.OpenStandardOutput();
 var fileMode = cmdOpts.Append ? FileMode.Append : FileMode.Create;
-var streams = Array.ConvertAll(cmdOpts.Files, file => (file == "-") ? stdout :
-    new FileStream(file, fileMode, FileAccess.Write, FileShare.ReadWrite));
+var streams = Array.Empty<Stream>();
+try
+{
+    streams = Array.ConvertAll(cmdOpts.Files, file => (file == "-") ? stdout :
+        new FileStream(file, fileMode, FileAccess.Write, FileShare.ReadWrite));
+}
+catch (IOException ex)
+{
+    // Reflection disabled, unable to get the actual type name.
+    Console.Error.WriteLine($"{nameof(IOException)}: {ex.Message}");
+    return 2;
+}
+catch (SystemException ex)
+{
+    Console.Error.WriteLine($"{nameof(SystemException)}: {ex.Message}");
+    return 2;
+}
 
+var length = 0;
 var readBuffer = new byte[cmdOpts.BufferSize];
 var writeBuffer = new byte[cmdOpts.BufferSize];
 var stdoutTask = Task.CompletedTask;
 var streamTasks = Array.ConvertAll(streams, stream => Task.CompletedTask);
-
-var length = 0;
 while ((length = await stdin.ReadAsync(readBuffer)) != 0)
 {
     await stdoutTask;
