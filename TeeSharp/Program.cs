@@ -72,7 +72,7 @@ static IEnumerable<string> GetHelpMessage()
     yield return $"Copy standard input to each FILE, and also to standard output.";
     yield return "";
     yield return "    -a, --append            Append to the given FILEs, do not overwrite.";
-    yield return "    -b, --buffer-size N     Buffer size N using in copying.";
+    yield return "    -b, --buffer-size N     Buffer size N using in copying, default to 4096.";
     yield return "    -?, -h, --help          Display this help and exit.";
     yield return "";
     yield return "When FILE is -, copy again to standard output.";
