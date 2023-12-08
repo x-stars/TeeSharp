@@ -22,9 +22,8 @@ var fileMode = cmdOpts.Append ? FileMode.Append : FileMode.Create;
 var streams = Array.ConvertAll(cmdOpts.Files, file => (file == "-") ? stdout :
     new FileStream(file, fileMode, FileAccess.Write, FileShare.ReadWrite));
 
-const int bufferSize = 4096;
-var readBuffer = new byte[bufferSize];
-var writeBuffer = new byte[bufferSize];
+var readBuffer = new byte[cmdOpts.BufferSize];
+var writeBuffer = new byte[cmdOpts.BufferSize];
 var stdoutTask = Task.CompletedTask;
 var streamTasks = Array.ConvertAll(streams, stream => Task.CompletedTask);
 
@@ -58,8 +57,9 @@ static IEnumerable<string> GetHelpMessage()
     yield return $"Usage: {cmdName} [OPTION]... [FILE]...";
     yield return $"Copy standard input to each FILE, and also to standard output.";
     yield return "";
-    yield return "    -a, --append         Append to the given FILEs, do not overwrite.";
-    yield return "    -?, -h, --help       Display this help and exit.";
+    yield return "    -a, --append            Append to the given FILEs, do not overwrite.";
+    yield return "    -b, --buffer-size N     Buffer size N using in copying.";
+    yield return "    -?, -h, --help          Display this help and exit.";
     yield return "";
     yield return "When FILE is -, copy again to standard output.";
 }
@@ -84,7 +84,7 @@ static partial class Program
     }
 }
 
-readonly record struct CommandOptions(bool Help, bool Append, string[] Files)
+readonly record struct CommandOptions(bool Help, bool Append, int BufferSize, string[] Files)
 {
     public string? InvalidOption { get; init; }
 
@@ -92,9 +92,10 @@ readonly record struct CommandOptions(bool Help, bool Append, string[] Files)
     {
         var help = false;
         var append = false;
+        var bufferSize = 4096;
         var files = new List<string>(args.Length);
         var invalidOpt = default(string);
-        foreach (var index in ..args.Length)
+        for (var index = 0; index < args.Length; index++)
         {
             var arg = args[index];
             switch (arg)
@@ -104,6 +105,19 @@ readonly record struct CommandOptions(bool Help, bool Append, string[] Files)
                     break;
                 case "-a" or "--append":
                     append = true;
+                    break;
+                case "-b" or "--buffer-size":
+                    if (index == args.Length - 1)
+                    {
+                        invalidOpt = arg;
+                        goto ParseEnd;
+                    }
+                    var nextArg = args[++index];
+                    if (!int.TryParse(nextArg, out bufferSize) || (bufferSize <= 0))
+                    {
+                        invalidOpt = $"{arg} {nextArg}";
+                        goto ParseEnd;
+                    }
                     break;
                 case "--":
                     files.AddRange(args[(index + 1)..]);
@@ -117,6 +131,6 @@ readonly record struct CommandOptions(bool Help, bool Append, string[] Files)
             }
         }
     ParseEnd:
-        return new(help, append, files.ToArray()) { InvalidOption = invalidOpt };
+        return new(help, append, bufferSize, files.ToArray()) { InvalidOption = invalidOpt };
     }
 }
