@@ -2,11 +2,17 @@
 open System.IO
 open System.Threading.Tasks
 
+let inline (|PositiveInt32|_|) (text: string) =
+    match Int32.TryParse(text) with
+    | true, result when result > 0 -> Some result
+    | _, _ -> None
+
 [<Struct; NoComparison>]
 type CommandOptions =
     {
         Help: bool
         Append: bool
+        BufferSize: int
         Files: string list
         InvalidOption: string
     }
@@ -18,6 +24,12 @@ type CommandOptions =
                 parseRest rest { result with Help = true }
             | ("-a" | "--append") :: rest ->
                 parseRest rest { result with Append = true }
+            | ("-b" | "--buffer-size") :: PositiveInt32 value :: rest ->
+                parseRest rest { result with BufferSize = value }
+            | ("-b" | "--buffer-size") as arg :: nextArg :: _ ->
+                { result with InvalidOption = arg + " " + nextArg }
+            | ("-b" | "--buffer-size") as arg :: [] ->
+                { result with InvalidOption = arg }
             | "--" :: rest ->
                 { result with Files = (List.rev result.Files) @ rest }
             | arg :: _ when arg.StartsWith('-') && (args.Length > 1) ->
@@ -27,7 +39,8 @@ type CommandOptions =
             | [] -> { result with Files = List.rev result.Files }
         parseRest (args |> Array.toList) {
             Help = false; Append = true
-            Files = []; InvalidOption = null
+            BufferSize = 4096; Files = []
+            InvalidOption = null
         }
 
 let commandName =
@@ -45,6 +58,7 @@ let helpMessage = seq {
     "Copy standard input to each FILE, and also to standard output."
     ""
     "    -a, --append            Append to the given FILEs, do not overwrite."
+    "    -b, --buffer-size N     Buffer size N using in copying, default to 4096."
     "    -?, -h, --help          Display this help and exit."
     ""
     "When FILE is -, copy again to standard output."
@@ -89,7 +103,7 @@ let rec copyInput (buffer: byte[]) (lastBuffer: byte[])
         let stdoutTask = stdout.WriteAsync(buffer, 0, length)
         copyInput lastBuffer buffer stdoutTask streamTasks
 
-let [<Literal>] bufferSize = 4096
+let bufferSize = cmdOpts.BufferSize
 copyInput (Array.zeroCreate bufferSize) (Array.zeroCreate bufferSize)
           (Task.CompletedTask) (streams |> Array.map (fun _ -> Task.CompletedTask))
 
