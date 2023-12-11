@@ -3,6 +3,12 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.8.34309.116
 MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "BuildItems", "BuildItems", "{F21E7E19-E406-4258-9A70-E0786ED06076}"
+	ProjectSection(SolutionItems) = preProject
+		BuildItems\AssemblyInfo.Build.props = BuildItems\AssemblyInfo.Build.props
+		BuildItems\NativeAOT.Build.props = BuildItems\NativeAOT.Build.props
+	EndProjectSection
+EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Configurations", "Configurations", "{2C237306-5491-48A9-8A6D-7D1AF313FEE6}"
 	ProjectSection(SolutionItems) = preProject
 		.gitattributes = .gitattributes
@@ -15,9 +21,9 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "RepositoryItems", "Reposito
 		README.md = README.md
 	EndProjectSection
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TeeCSharp", "TeeCSharp\TeeCSharp.csproj", "{C2A3616E-A5DD-4C01-A4AB-F4E49EA65D0B}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TeeCSharp", "TeeCSharp\TeeCSharp.csproj", "{C2A3616E-A5DD-4C01-A4AB-F4E49EA65D0B}"
 EndProject
-Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "TeeFSharp", "TeeFSharp\TeeFSharp.fsproj", "{64871ED2-F0AA-4978-9568-16787694B39B}"
+Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "TeeFSharp", "TeeFSharp\TeeFSharp.fsproj", "{64871ED2-F0AA-4978-9568-16787694B39B}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
