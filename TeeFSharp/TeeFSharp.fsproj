@@ -3,6 +3,7 @@
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>net8.0</TargetFramework>
+    <AssemblyName>tee-fs</AssemblyName>
     <LangVersion>latest</LangVersion>
     <IsTrimmable>true</IsTrimmable>
     <EnableNETAnalyzers>true</EnableNETAnalyzers>
@@ -12,8 +13,8 @@
     <Authors>XstarS</Authors>
     <Company>XstarS</Company>
     <Version>1.0.0</Version>
-    <Product>.NET tee</Product>
-    <AssemblyTitle>$(Product) CLI in F#</AssemblyTitle>
+    <Product>.NET tee CLI</Product>
+    <AssemblyTitle>$(Product) in F#</AssemblyTitle>
     <Copyright>Copyright © $(Company) 2023</Copyright>
     <FileVersion>$(Version.Split('-')[0]).0</FileVersion>
     <VersionMajor>$(Version.Split('.')[0])</VersionMajor>

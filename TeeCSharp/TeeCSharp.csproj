@@ -3,6 +3,7 @@
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>net8.0</TargetFramework>
+    <AssemblyName>tee-cs</AssemblyName>
     <LangVersion>latest</LangVersion>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
@@ -14,8 +15,8 @@
     <Authors>XstarS</Authors>
     <Company>XstarS</Company>
     <Version>1.0.0</Version>
-    <Product>.NET tee</Product>
-    <AssemblyTitle>$(Product) CLI</AssemblyTitle>
+    <Product>.NET tee CLI</Product>
+    <AssemblyTitle>$(Product) in C#</AssemblyTitle>
     <Copyright>Copyright © $(Company) 2023</Copyright>
     <FileVersion>$(Version.Split('-')[0]).0</FileVersion>
     <VersionMajor>$(Version.Split('.')[0])</VersionMajor>
