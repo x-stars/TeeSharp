@@ -84,9 +84,19 @@ let stdin = Console.OpenStandardInput()
 let stdout = Console.OpenStandardOutput()
 let files = cmdOpts.Files |> List.toArray
 let fileMode = if cmdOpts.Append then FileMode.Append else FileMode.Create
-let streams = files |> Array.map (fun file ->
-    if file = "-" then stdout else new FileStream(
-        file, fileMode, FileAccess.Write, FileShare.ReadWrite))
+let streams =
+    try
+        files |> Array.map (fun file ->
+            if file = "-" then stdout else new FileStream(
+                file, fileMode, FileAccess.Write, FileShare.ReadWrite))
+    with
+    | :? IOException as ex ->
+        // Reflection disabled, unable to get the actual type name.
+        Console.Error.WriteLine((nameof IOException) + ": " + ex.Message)
+        exit 2
+    | :? SystemException as ex ->
+        Console.Error.WriteLine((nameof SystemException) + ": " + ex.Message)
+        exit 2
 
 let rec copyInput (buffer: byte[]) (lastBuffer: byte[])
                   (lastStdoutTask: Task) (lastStreamTasks: Task[]) =
