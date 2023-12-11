@@ -97,6 +97,11 @@ let streams =
     | :? SystemException as ex ->
         Console.Error.WriteLine((nameof SystemException) + ": " + ex.Message)
         exit 2
+AppDomain.CurrentDomain.ProcessExit.Add(fun __ ->
+    streams |> Array.iter (_.Dispose())
+    stdout.Dispose()
+    stdin.Dispose()
+)
 
 let rec copyInput (buffer: byte[]) (lastBuffer: byte[])
                   (lastStdoutTask: Task) (lastStreamTasks: Task[]) =
@@ -116,7 +121,3 @@ let rec copyInput (buffer: byte[]) (lastBuffer: byte[])
 let bufferSize = cmdOpts.BufferSize
 copyInput (Array.zeroCreate bufferSize) (Array.zeroCreate bufferSize)
           (Task.CompletedTask) (streams |> Array.map (fun _ -> Task.CompletedTask))
-
-streams |> Array.iter (_.Dispose())
-stdout.Dispose()
-stdin.Dispose()

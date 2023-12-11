@@ -16,8 +16,8 @@ if (cmdOpts.Help)
     return 0;
 }
 
-var stdin = Console.OpenStandardInput();
-var stdout = Console.OpenStandardOutput();
+using var stdin = Console.OpenStandardInput();
+using var stdout = Console.OpenStandardOutput();
 var fileMode = cmdOpts.Append ? FileMode.Append : FileMode.Create;
 var streams = Array.Empty<Stream>();
 try
@@ -36,6 +36,14 @@ catch (SystemException ex)
     Console.Error.WriteLine($"{nameof(SystemException)}: {ex.Message}");
     return 2;
 }
+using var streamsDisposable = new DisposableAction(disposing =>
+{
+    if (!disposing) { return; }
+    foreach (var stream in streams)
+    {
+        stream?.Dispose();
+    }
+});
 
 var length = 0;
 var readBuffer = new byte[cmdOpts.BufferSize];
@@ -55,13 +63,6 @@ while ((length = await stdin.ReadAsync(readBuffer)) != 0)
 }
 await stdoutTask;
 await Task.WhenAll(streamTasks);
-
-foreach (var stream in streams)
-{
-    stream.Dispose();
-}
-stdout.Dispose();
-stdin.Dispose();
 return 0;
 
 static IEnumerable<string> GetHelpMessage()
@@ -147,4 +148,11 @@ readonly record struct CommandOptions(bool Help, bool Append, int BufferSize, st
     ParseEnd:
         return new(help, append, bufferSize, files.ToArray()) { InvalidOption = invalidOpt };
     }
+}
+
+sealed class DisposableAction(Action<bool> action) : IDisposable
+{
+    ~DisposableAction() { this.Dispose(disposing: false); }
+    public void Dispose() { this.Dispose(disposing: true); GC.SuppressFinalize(this); }
+    private void Dispose(bool disposing) { action.Invoke(disposing); }
 }
