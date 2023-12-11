@@ -38,7 +38,7 @@ type CommandOptions =
                 parseRest rest { result with Files = arg :: result.Files }
             | [] -> { result with Files = List.rev result.Files }
         parseRest (args |> Array.toList) {
-            Help = false; Append = true
+            Help = false; Append = false
             BufferSize = 4096; Files = []
             InvalidOption = null
         }
@@ -48,7 +48,7 @@ let commandName =
     let cmdName = Path.GetFileNameWithoutExtension(cmdPath)
     let cmdExt = Path.GetExtension(cmdPath)
     let hasPathExt = Environment.OSVersion.Platform < PlatformID.Unix
-    if (hasPathExt && (cmdExt.Length > 0))
+    if hasPathExt && (cmdExt.Length > 0)
         // Don't use interpolated strings when reflection disabled.
         then cmdName + "[" + cmdExt + "]" else Path.GetFileName(cmdPath)
 
@@ -71,7 +71,7 @@ let invalidOptMessage (option: string) = seq {
 
 let args = Environment.GetCommandLineArgs()[1..]
 let cmdOpts = CommandOptions.Parse(args)
-if (not << isNull) cmdOpts.InvalidOption then
+if cmdOpts.InvalidOption |> (not << isNull) then
     invalidOptMessage cmdOpts.InvalidOption
     |> Seq.iter Console.Error.WriteLine
     exit 1
@@ -121,3 +121,4 @@ let rec copyInput (buffer: byte[]) (lastBuffer: byte[])
 let bufferSize = cmdOpts.BufferSize
 copyInput (Array.zeroCreate bufferSize) (Array.zeroCreate bufferSize)
           (Task.CompletedTask) (streams |> Array.map (fun _ -> Task.CompletedTask))
+exit 0
