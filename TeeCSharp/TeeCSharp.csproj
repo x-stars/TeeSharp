@@ -11,34 +11,16 @@
     <EnableNETAnalyzers>true</EnableNETAnalyzers>
   </PropertyGroup>
 
+  <Import Project="..\BuildItems\AssemblyInfo.Build.props" />
   <PropertyGroup>
-    <Authors>XstarS</Authors>
-    <Company>XstarS</Company>
-    <Version>1.0.0</Version>
-    <Product>.NET tee CLI</Product>
     <AssemblyTitle>$(Product) in C#</AssemblyTitle>
-    <Copyright>Copyright © $(Company) 2023</Copyright>
-    <FileVersion>$(Version.Split('-')[0]).0</FileVersion>
-    <VersionMajor>$(Version.Split('.')[0])</VersionMajor>
-    <VersionMinor>$(Version.Split('.')[1])</VersionMinor>
-    <AssemblyVersion>$(VersionMajor).$(VersionMinor).0.0</AssemblyVersion>
   </PropertyGroup>
 
   <PropertyGroup>
     <IsPackable>false</IsPackable>
   </PropertyGroup>
 
-  <PropertyGroup>
-    <PublishAot>true</PublishAot>
-    <PublishTrimmed>true</PublishTrimmed>
-    <TrimMode>full</TrimMode>
-    <StripSymbols>true</StripSymbols>
-    <InvariantGlobalization>true</InvariantGlobalization>
-    <IlcDisableReflection>true</IlcDisableReflection>
-    <IlcFoldIdenticalMethodBodies>true</IlcFoldIdenticalMethodBodies>
-    <IlcGenerateStackTraceData>true</IlcGenerateStackTraceData>
-    <IlcOptimizationPreference>Speed</IlcOptimizationPreference>
-  </PropertyGroup>
+  <Import Project="..\BuildItems\NativeAOT.Build.props" />
 
   <ItemGroup>
     <PackageReference Include="RangeForeach.Sources" Version="1.2.0" PrivateAssets="all" />
