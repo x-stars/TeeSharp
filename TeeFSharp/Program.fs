@@ -49,11 +49,11 @@ let commandName =
     let cmdExt = Path.GetExtension(cmdPath)
     let hasPathExt = Environment.OSVersion.Platform < PlatformID.Unix
     if (hasPathExt && (cmdExt.Length > 0))
-        // Don't use the interpolated string syntax when reflection disabled.
+        // Don't use interpolated strings when reflection disabled.
         then cmdName + "[" + cmdExt + "]" else Path.GetFileName(cmdPath)
 
 let helpMessage = seq {
-    // Don't use the multi-line string literal to avoid hard-coding the newline sequence.
+    // Don't use multi-line string literals to avoid hard-coding the newline sequence.
     "Usage: " + commandName + " [OPTION]... [FILE]..."
     "Copy standard input to each FILE, and also to standard output."
     ""
@@ -61,7 +61,7 @@ let helpMessage = seq {
     "    -b, --buffer-size N     Buffer size N using in copying, default to 4096."
     "    -?, -h, --help          Display this help and exit."
     ""
-    "When FILE is -, copy again to standard output."
+    "If a FILE is -, copy again to standard output."
 }
 
 let invalidOptMessage (option: string) = seq {

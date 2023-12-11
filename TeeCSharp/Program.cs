@@ -67,7 +67,7 @@ return 0;
 static IEnumerable<string> GetHelpMessage()
 {
     var cmdName = Program.GetCommandName();
-    // Don't use the multi-line string literal to avoid hard-coding the newline sequence.
+    // Don't use multi-line string literals to avoid hard-coding the newline sequence.
     yield return $"Usage: {cmdName} [OPTION]... [FILE]...";
     yield return $"Copy standard input to each FILE, and also to standard output.";
     yield return "";
@@ -75,7 +75,7 @@ static IEnumerable<string> GetHelpMessage()
     yield return "    -b, --buffer-size N     Buffer size N using in copying, default to 4096.";
     yield return "    -?, -h, --help          Display this help and exit.";
     yield return "";
-    yield return "When FILE is -, copy again to standard output.";
+    yield return "If a FILE is -, copy again to standard output.";
 }
 
 static IEnumerable<string> GetInvalidOptionMessage(string option)
