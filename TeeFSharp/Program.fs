@@ -2,10 +2,11 @@
 open System.IO
 open System.Threading.Tasks
 
+[<return: Struct>]
 let inline (|PositiveInt32|_|) (text: string) =
     match Int32.TryParse(text) with
-    | true, result when result > 0 -> Some result
-    | _, _ -> None
+    | true, result when result > 0 -> ValueSome result
+    | _, _ -> ValueNone
 
 [<Struct; NoComparison>]
 type CommandOptions =
