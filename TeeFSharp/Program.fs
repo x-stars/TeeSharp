@@ -32,7 +32,7 @@ type CommandOptions =
                 { result with InvalidOption = arg }
             | "--" :: rest ->
                 { result with Files = (List.rev result.Files) @ rest }
-            | arg :: _ when arg.StartsWith('-') && (args.Length > 1) ->
+            | arg :: _ when arg.StartsWith('-') && (arg.Length > 1) ->
                 { result with InvalidOption = arg }
             | arg :: rest ->
                 parseRest rest { result with Files = arg :: result.Files }
