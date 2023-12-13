@@ -1,7 +1,8 @@
-﻿var cmdOpts = CommandOptions.Parse(args);
-if (cmdOpts.InvalidOption != null)
+﻿var cmdOpts = default(CommandOptions);
+try { cmdOpts = CommandOptions.Parse(args); }
+catch (ArgumentOutOfRangeException ex)
 {
-    foreach (var line in GetInvalidOptionMessage(cmdOpts.InvalidOption))
+    foreach (var line in GetInvalidOptionMessage(ex.ParamName!))
     {
         Console.Error.WriteLine(line);
     }
@@ -102,8 +103,6 @@ static partial class Program
 
 readonly record struct CommandOptions(bool Help, bool Append, int BufferSize, List<string> Files)
 {
-    public string? InvalidOption { get; init; }
-
     public CommandOptions WithAddingFile(string file)
     {
         this.Files.Add(file);
@@ -131,13 +130,14 @@ readonly record struct CommandOptions(bool Help, bool Append, int BufferSize, Li
                 when int.TryParse(nextArg, out var value) && value > 0 =>
                     ParseNext(rest, result with { BufferSize = value }),
                 [("-b" or "--buffer-size") and var arg, var nextArg, ..] =>
-                    result with { InvalidOption = $"{arg} {nextArg}" },
+                    throw new ArgumentOutOfRangeException($"{arg} {nextArg}"),
                 [("-b" or "--buffer-size") and var arg] =>
-                    result with { InvalidOption = arg },
+                    throw new ArgumentOutOfRangeException(arg),
                 ["--", .. var rest] => result.WithAddingFiles(rest),
                 [{ Length: > 1 } arg, ..] when arg.StartsWith('-') =>
-                    result with { InvalidOption = arg },
-                [var arg, .. var rest] => ParseNext(rest, result.WithAddingFile(arg)),
+                    throw new ArgumentOutOfRangeException(arg),
+                [var arg, .. var rest] =>
+                    ParseNext(rest, result.WithAddingFile(arg)),
             };
         }
         return ParseNext(args, new() { BufferSize = 4096, Files = new(args.Length) });

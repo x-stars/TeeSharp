@@ -15,12 +15,12 @@ type CommandOptions =
         Append: bool
         BufferSize: int
         Files: string list
-        InvalidOption: string
     }
 
     static member Parse(args: string[]) =
         let rec parseRest args result =
             match args with
+            | [] -> Ok { result with Files = List.rev result.Files }
             | ("-?" | "-h" | "--help") :: rest ->
                 parseRest rest { result with Help = true }
             | ("-a" | "--append") :: rest ->
@@ -28,20 +28,16 @@ type CommandOptions =
             | ("-b" | "--buffer-size") :: PositiveInt32 value :: rest ->
                 parseRest rest { result with BufferSize = value }
             | ("-b" | "--buffer-size") as arg :: nextArg :: _ ->
-                { result with InvalidOption = arg + " " + nextArg }
-            | ("-b" | "--buffer-size") as arg :: [] ->
-                { result with InvalidOption = arg }
+                Error (arg + " " + nextArg)
+            | ("-b" | "--buffer-size") as arg :: [] -> Error arg
             | "--" :: rest ->
-                { result with Files = (List.rev result.Files) @ rest }
-            | arg :: _ when arg.StartsWith('-') && (arg.Length > 1) ->
-                { result with InvalidOption = arg }
+                Ok { result with Files = (List.rev result.Files) @ rest }
+            | arg :: _ when arg.StartsWith('-') && (arg.Length > 1) -> Error arg
             | arg :: rest ->
                 parseRest rest { result with Files = arg :: result.Files }
-            | [] -> { result with Files = List.rev result.Files }
         parseRest (args |> Array.toList) {
             Help = false; Append = false
             BufferSize = 4096; Files = []
-            InvalidOption = null
         }
 
 let commandName =
@@ -71,15 +67,17 @@ let invalidOptMessage (option: string) = seq {
 }
 
 let args = Environment.GetCommandLineArgs()[1..]
-let cmdOpts = CommandOptions.Parse(args)
-if cmdOpts.InvalidOption |> (not << isNull) then
-    invalidOptMessage cmdOpts.InvalidOption
-    |> Seq.iter Console.Error.WriteLine
-    exit 1
-if cmdOpts.Help then
-    // Don't use the Printf module when reflection disabled.
-    helpMessage |> Seq.iter Console.Out.WriteLine
-    exit 0
+let cmdOpts =
+    match CommandOptions.Parse(args) with
+    | Error invalidOpt ->
+        invalidOptMessage invalidOpt
+        |> Seq.iter Console.Error.WriteLine
+        exit 1
+    | Ok cmdOpts when cmdOpts.Help ->
+        // Don't use the Printf module when reflection disabled.
+        helpMessage |> Seq.iter Console.Out.WriteLine
+        exit 0
+    | Ok cmdOpts -> cmdOpts
 
 let stdin = Console.OpenStandardInput()
 let stdout = Console.OpenStandardOutput()
