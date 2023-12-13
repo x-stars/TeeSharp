@@ -22,8 +22,9 @@ var fileMode = cmdOpts.Append ? FileMode.Append : FileMode.Create;
 var streams = Array.Empty<Stream>();
 try
 {
-    streams = Array.ConvertAll(cmdOpts.Files, file => (file == "-") ? stdout :
-        new FileStream(file, fileMode, FileAccess.Write, FileShare.ReadWrite));
+    streams = Array.ConvertAll(cmdOpts.Files.ToArray(),
+        file => (file == "-") ? stdout : new FileStream(
+            file, fileMode, FileAccess.Write, FileShare.ReadWrite));
 }
 catch (IOException ex)
 {
@@ -99,54 +100,47 @@ static partial class Program
     }
 }
 
-readonly record struct CommandOptions(bool Help, bool Append, int BufferSize, string[] Files)
+readonly record struct CommandOptions(bool Help, bool Append, int BufferSize, List<string> Files)
 {
     public string? InvalidOption { get; init; }
 
+    public CommandOptions WithAddingFile(string file)
+    {
+        this.Files.Add(file);
+        return this;
+    }
+
+    public CommandOptions WithAddingFiles(ReadOnlySpan<string> files)
+    {
+        this.Files.AddRange(files);
+        return this;
+    }
+
     public static CommandOptions Parse(string[] args)
     {
-        var help = false;
-        var append = false;
-        var bufferSize = 4096;
-        var files = new List<string>(args.Length);
-        var invalidOpt = default(string);
-        for (var index = 0; index < args.Length; index++)
+        static CommandOptions ParseNext(ReadOnlySpan<string> args, CommandOptions result)
         {
-            var arg = args[index];
-            switch (arg)
+            return args switch
             {
-                case "-?" or "-h" or "--help":
-                    help = true;
-                    break;
-                case "-a" or "--append":
-                    append = true;
-                    break;
-                case "-b" or "--buffer-size":
-                    if (index == args.Length - 1)
-                    {
-                        invalidOpt = arg;
-                        goto ParseEnd;
-                    }
-                    var nextArg = args[++index];
-                    if (!int.TryParse(nextArg, out bufferSize) || (bufferSize <= 0))
-                    {
-                        invalidOpt = $"{arg} {nextArg}";
-                        goto ParseEnd;
-                    }
-                    break;
-                case "--":
-                    files.AddRange(args[(index + 1)..]);
-                    goto ParseEnd;
-                case { Length: > 1 } when arg.StartsWith('-'):
-                    invalidOpt = arg;
-                    goto ParseEnd;
-                default:
-                    files.Add(arg);
-                    break;
-            }
+                [] => result,
+                ["-?" or "-h" or "--help", .. var rest] =>
+                    ParseNext(rest, result with { Help = true }),
+                ["-a" or "--append", .. var rest] =>
+                    ParseNext(rest, result with { Append = true }),
+                ["-b" or "--buffer-size", var nextArg, .. var rest]
+                when int.TryParse(nextArg, out var value) && value > 0 =>
+                    ParseNext(rest, result with { BufferSize = value }),
+                [("-b" or "--buffer-size") and var arg, var nextArg, ..] =>
+                    result with { InvalidOption = $"{arg} {nextArg}" },
+                [("-b" or "--buffer-size") and var arg] =>
+                    result with { InvalidOption = arg },
+                ["--", .. var rest] => result.WithAddingFiles(rest),
+                [{ Length: > 1 } arg, ..] when arg.StartsWith('-') =>
+                    result with { InvalidOption = arg },
+                [var arg, .. var rest] => ParseNext(rest, result.WithAddingFile(arg)),
+            };
         }
-    ParseEnd:
-        return new(help, append, bufferSize, files.ToArray()) { InvalidOption = invalidOpt };
+        return ParseNext(args, new() { BufferSize = 4096, Files = new(args.Length) });
     }
 }
 
