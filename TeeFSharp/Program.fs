@@ -66,44 +66,40 @@ let invalidOptMessage (option: string) = seq {
     "Try '" + commandName + " --help' for more information."
 }
 
-let args = Environment.GetCommandLineArgs()[1..]
-let cmdOpts =
+let parseCmdOpts args =
     match CommandOptions.Parse(args) with
     | Error invalidOpt ->
         invalidOptMessage invalidOpt
         |> Seq.iter Console.Error.WriteLine
-        exit 1
+        Error 1
     | Ok cmdOpts when cmdOpts.Help ->
         // Don't use the Printf module when reflection disabled.
         helpMessage |> Seq.iter Console.Out.WriteLine
-        exit 0
-    | Ok cmdOpts -> cmdOpts
+        Error 0
+    | Ok cmdOpts -> Ok cmdOpts
 
-let stdin = Console.OpenStandardInput()
-let stdout = Console.OpenStandardOutput()
-let files = cmdOpts.Files |> List.toArray
-let fileMode = if cmdOpts.Append then FileMode.Append else FileMode.Create
-let streams =
+let openStreams cmdOpts =
+    let stdin = Console.OpenStandardInput()
+    let stdout = Console.OpenStandardOutput()
+    let files = cmdOpts.Files |> List.toArray
+    let fileMode = if cmdOpts.Append then FileMode.Append else FileMode.Create
     try
-        files |> Array.map (fun file ->
+        let streams = files |> Array.map (fun file ->
             if file = "-" then stdout else new FileStream(
                 file, fileMode, FileAccess.Write, FileShare.ReadWrite))
+        Ok struct (stdin, stdout, streams, cmdOpts.BufferSize)
     with
     | :? IOException as ex ->
         // Reflection disabled, unable to get the actual type name.
         Console.Error.WriteLine((nameof IOException) + ": " + ex.Message)
-        exit 2
+        Error 2
     | :? SystemException as ex ->
         Console.Error.WriteLine((nameof SystemException) + ": " + ex.Message)
-        exit 2
-AppDomain.CurrentDomain.ProcessExit.Add(fun __ ->
-    streams |> Array.iter (_.Dispose())
-    stdout.Dispose()
-    stdin.Dispose()
-)
+        Error 2
 
-let rec copyInput (buffer: byte[]) (lastBuffer: byte[])
-                  (lastStdoutTask: Task) (lastStreamTasks: Task[]) =
+let rec copyInput (stdin: Stream, stdout: Stream, streams: Stream[])
+                  (buffer: byte[], lastBuffer: byte[])
+                  (lastStdoutTask: Task, lastStreamTasks: Task[]) =
     let lengthTask = task {
         let! length = stdin.ReadAsync(buffer)
         let! _ = lastStdoutTask
@@ -115,9 +111,24 @@ let rec copyInput (buffer: byte[]) (lastBuffer: byte[])
     | length ->
         let streamTasks = streams |> Array.map _.WriteAsync(buffer, 0, length)
         let stdoutTask = stdout.WriteAsync(buffer, 0, length)
-        copyInput lastBuffer buffer stdoutTask streamTasks
+        copyInput (stdin, stdout, streams)
+            (lastBuffer, buffer) (stdoutTask, streamTasks)
 
-let bufferSize = cmdOpts.BufferSize
-copyInput (Array.zeroCreate bufferSize) (Array.zeroCreate bufferSize)
-          (Task.CompletedTask) (streams |> Array.map (fun _ -> Task.CompletedTask))
-exit 0
+[<EntryPoint>]
+let main args =
+    let parseAndOpenResult =
+        Ok args
+        |> Result.bind parseCmdOpts
+        |> Result.bind openStreams
+    match parseAndOpenResult with
+    | Error exitCode -> exitCode
+    | Ok (stdin, stdout, streams, bufferSize) ->
+        use _ = stdin
+        use _ = stdout
+        use _ = { new IDisposable with
+            member _.Dispose() = streams |> Array.iter _.Dispose()
+        }
+        copyInput (stdin, stdout, streams)
+            (Array.zeroCreate bufferSize, Array.zeroCreate bufferSize)
+            (Task.CompletedTask, streams |> Array.map (fun _ -> Task.CompletedTask))
+        0
