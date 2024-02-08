@@ -23,7 +23,7 @@
   <Import Project="..\BuildItems\NativeAOT.Build.props" />
 
   <ItemGroup>
-    <PackageReference Include="RangeForeach.Sources" Version="1.2.5" PrivateAssets="all" />
+    <PackageReference Include="RangeForeach.Sources" Version="1.2.8" PrivateAssets="all" />
   </ItemGroup>
 
 </Project>
