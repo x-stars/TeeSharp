@@ -1,5 +1,8 @@
 ﻿var cmdOpts = default(CommandOptions);
-try { cmdOpts = CommandOptions.Parse(args); }
+try
+{
+    cmdOpts = CommandOptions.Parse(args);
+}
 catch (ArgumentOutOfRangeException ex)
 {
     foreach (var line in GetInvalidOptionMessage(ex.ParamName!))
