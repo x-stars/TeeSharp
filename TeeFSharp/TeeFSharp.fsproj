@@ -24,8 +24,4 @@
     <Compile Include="Program.fs" />
   </ItemGroup>
 
-  <ItemGroup>
-    <PackageReference Update="FSharp.Core" Version="9.0.100" />
-  </ItemGroup>
-
 </Project>
