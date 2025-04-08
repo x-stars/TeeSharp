@@ -11,7 +11,7 @@ Features:
 
 ## Command Line Usage
 
-``` Batch
+``` bat
 > tee-cs.exe --help
 Usage: tee-cs[.exe] [OPTION]... [FILE]...
 Copy standard input to each FILE, and also to standard output.
