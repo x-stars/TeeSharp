@@ -41,9 +41,8 @@ catch (SystemException ex)
     Console.Error.WriteLine($"{nameof(SystemException)}: {ex.Message}");
     return 2;
 }
-using var streamsDisposable = new DisposeAction(disposing =>
+using var streamsDisposable = new DisposeAction(() =>
 {
-    if (!disposing) { return; }
     foreach (var stream in streams)
     {
         stream?.Dispose();
@@ -147,9 +146,7 @@ readonly record struct CommandOptions(bool Help, bool Append, int BufferSize, Li
     }
 }
 
-sealed class DisposeAction(Action<bool> action) : IDisposable
+sealed class DisposeAction(Action action) : IDisposable
 {
-    ~DisposeAction() { this.Dispose(disposing: false); }
-    public void Dispose() { this.Dispose(disposing: true); GC.SuppressFinalize(this); }
-    private void Dispose(bool disposing) { action.Invoke(disposing); }
+    public void Dispose() { action.Invoke(); }
 }
