@@ -12,7 +12,7 @@ Features:
 ## Command Line Usage
 
 ``` bat
-> tee-cs.exe --help
+> tee-cs --help
 Usage: tee-cs[.exe] [OPTION]... [FILE]...
 Copy standard input to each FILE, and also to standard output.
 
@@ -23,4 +23,4 @@ Copy standard input to each FILE, and also to standard output.
 If a FILE is -, copy again to standard output.
 ```
 
-> `tee-fs.exe` also works.
+> `tee-fs` also works.
