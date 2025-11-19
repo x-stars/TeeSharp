@@ -8,7 +8,7 @@ let inline (|PositiveInt32|_|) (text: string) =
     | true, result when result > 0 -> ValueSome result
     | _, _ -> ValueNone
 
-[<Struct; NoComparison>]
+[<Struct; NoEquality; NoComparison>]
 type CommandOptions =
     {
         Help: bool
@@ -16,6 +16,8 @@ type CommandOptions =
         BufferSize: int
         Files: string list
     }
+
+    override _.ToString() = nameof CommandOptions
 
     static member Parse(args: string[]) =
         let rec parseRest args result =
