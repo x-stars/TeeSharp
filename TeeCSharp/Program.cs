@@ -146,7 +146,7 @@ readonly record struct CommandOptions(bool Help, bool Append, int BufferSize, Li
     }
 }
 
-sealed class DisposeAction(Action action) : IDisposable
+readonly struct DisposeAction(Action action) : IDisposable
 {
-    public void Dispose() { action.Invoke(); }
+    public void Dispose() => action.Invoke();
 }
