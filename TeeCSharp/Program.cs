@@ -26,9 +26,9 @@ var fileMode = cmdOpts.Append ? FileMode.Append : FileMode.Create;
 var streams = Array.Empty<Stream>();
 try
 {
-    streams = Array.ConvertAll(cmdOpts.Files.ToArray(),
+    streams = [.. cmdOpts.Files.Select(
         file => (file == "-") ? stdout : new FileStream(
-            file, fileMode, FileAccess.Write, FileShare.ReadWrite));
+            file, fileMode, FileAccess.Write, FileShare.ReadWrite))];
 }
 catch (IOException ex)
 {
@@ -103,20 +103,8 @@ static partial class Program
     }
 }
 
-readonly record struct CommandOptions(bool Help, bool Append, int BufferSize, List<string> Files)
+readonly record struct CommandOptions(bool Help, bool Append, int BufferSize, IEnumerable<string> Files)
 {
-    public CommandOptions WithAddingFile(string file)
-    {
-        this.Files.Add(file);
-        return this;
-    }
-
-    public CommandOptions WithAddingFiles(ReadOnlySpan<string> files)
-    {
-        this.Files.AddRange(files);
-        return this;
-    }
-
     public static CommandOptions Parse(string[] args)
     {
         static CommandOptions ParseNext(ReadOnlySpan<string> args, CommandOptions result)
@@ -135,14 +123,15 @@ readonly record struct CommandOptions(bool Help, bool Append, int BufferSize, Li
                     throw new ArgumentOutOfRangeException($"{arg} {nextArg}"),
                 [("-b" or "--buffer-size") and var arg] =>
                     throw new ArgumentOutOfRangeException(arg),
-                ["--", .. var rest] => result.WithAddingFiles(rest),
+                ["--", .. var rest] =>
+                    result with { Files = result.Files.Concat(rest.ToArray()) },
                 [{ Length: > 1 } arg, ..] when arg.StartsWith('-') =>
                     throw new ArgumentOutOfRangeException(arg),
                 [var arg, .. var rest] =>
-                    ParseNext(rest, result.WithAddingFile(arg)),
+                    ParseNext(rest, result with { Files = result.Files.Append(arg) }),
             };
         }
-        return ParseNext(args, new() { BufferSize = 4096, Files = new(args.Length) });
+        return ParseNext(args, new() { BufferSize = 4096, Files = [] });
     }
 }
 
