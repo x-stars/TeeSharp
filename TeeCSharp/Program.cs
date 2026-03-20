@@ -125,7 +125,7 @@ readonly record struct CommandOptions(bool Help, bool Append, int BufferSize, IE
                     throw new ArgumentOutOfRangeException(arg),
                 ["--", .. var rest] =>
                     result with { Files = result.Files.Concat(rest.ToArray()) },
-                [{ Length: > 1 } arg, ..] when arg.StartsWith('-') =>
+                [['-', _, ..] arg, ..] =>
                     throw new ArgumentOutOfRangeException(arg),
                 [var arg, .. var rest] =>
                     ParseNext(rest, result with { Files = result.Files.Append(arg) }),
