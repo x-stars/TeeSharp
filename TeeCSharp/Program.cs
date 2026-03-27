@@ -107,31 +107,33 @@ readonly record struct CommandOptions(bool Help, bool Append, int BufferSize, IE
 {
     public static CommandOptions Parse(string[] args)
     {
-        static CommandOptions ParseNext(ReadOnlySpan<string> args, CommandOptions result)
+        var current = ConsList.Create(args);
+        var result = new CommandOptions() { BufferSize = 4096, Files = [] };
+        while (current is not null)
         {
-            return args switch
+            (current, result) = current switch
             {
-                [] => result,
-                ["-?" or "-h" or "--help", .. var rest] =>
-                    ParseNext(rest, result with { Help = true }),
-                ["-a" or "--append", .. var rest] =>
-                    ParseNext(rest, result with { Append = true }),
-                ["-b" or "--buffer-size", var nextArg, .. var rest]
+                null => (null, result),
+                ("-?" or "-h" or "--help", var rest) =>
+                    (rest, result with { Help = true }),
+                ("-a" or "--append", var rest) =>
+                    (rest, result with { Append = true }),
+                ("-b" or "--buffer-size", (var nextArg, var rest))
                 when int.TryParse(nextArg, out var value) && value > 0 =>
-                    ParseNext(rest, result with { BufferSize = value }),
-                [("-b" or "--buffer-size") and var arg, var nextArg, ..] =>
+                    (rest, result with { BufferSize = value }),
+                (("-b" or "--buffer-size") and var arg, (var nextArg, _)) =>
                     throw new ArgumentOutOfRangeException($"{arg} {nextArg}"),
-                [("-b" or "--buffer-size") and var arg] =>
+                (("-b" or "--buffer-size") and var arg, null) =>
                     throw new ArgumentOutOfRangeException(arg),
-                ["--", .. var rest] =>
-                    result with { Files = result.Files.Concat(rest.ToArray()) },
-                [['-', _, ..] arg, ..] =>
+                ("--", var rest) =>
+                    (null, result with { Files = result.Files.Concat(rest.AsEnumerable()) }),
+                (['-', _, ..] arg, _) =>
                     throw new ArgumentOutOfRangeException(arg),
-                [var arg, .. var rest] =>
-                    ParseNext(rest, result with { Files = result.Files.Append(arg) }),
+                (var arg, var rest) =>
+                    (rest, result with { Files = result.Files.Append(arg) }),
             };
         }
-        return ParseNext(args, new() { BufferSize = 4096, Files = [] });
+        return result;
     }
 }
 
