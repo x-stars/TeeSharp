@@ -107,31 +107,44 @@ readonly record struct CommandOptions(bool Help, bool Append, int BufferSize, IE
 {
     public static CommandOptions Parse(string[] args)
     {
-        static CommandOptions ParseNext(ReadOnlySpan<string> args, CommandOptions result)
+        var current = (ReadOnlySpan<string>)args;
+        var result = new CommandOptions() { BufferSize = 4096, Files = [] };
+        while (current is not [])
         {
-            return args switch
+            (current, result) = current switch
             {
-                [] => result,
+                [] => new SpanValuePair<string, CommandOptions>([], result),
                 ["-?" or "-h" or "--help", .. var rest] =>
-                    ParseNext(rest, result with { Help = true }),
+                    new(rest, result with { Help = true }),
                 ["-a" or "--append", .. var rest] =>
-                    ParseNext(rest, result with { Append = true }),
+                    new(rest, result with { Append = true }),
                 ["-b" or "--buffer-size", var nextArg, .. var rest]
                 when int.TryParse(nextArg, out var value) && value > 0 =>
-                    ParseNext(rest, result with { BufferSize = value }),
+                    new(rest, result with { BufferSize = value }),
                 [("-b" or "--buffer-size") and var arg, var nextArg, ..] =>
                     throw new ArgumentOutOfRangeException($"{arg} {nextArg}"),
                 [("-b" or "--buffer-size") and var arg] =>
                     throw new ArgumentOutOfRangeException(arg),
                 ["--", .. var rest] =>
-                    result with { Files = result.Files.Concat(rest.ToArray()) },
+                    new([], result with { Files = result.Files.Concat(rest.ToArray()) }),
                 [['-', _, ..] arg, ..] =>
                     throw new ArgumentOutOfRangeException(arg),
                 [var arg, .. var rest] =>
-                    ParseNext(rest, result with { Files = result.Files.Append(arg) }),
+                    new(rest, result with { Files = result.Files.Append(arg) }),
             };
         }
-        return ParseNext(args, new() { BufferSize = 4096, Files = [] });
+        return result;
+    }
+}
+
+readonly ref struct SpanValuePair<T, TValue>(ReadOnlySpan<T> span, TValue value)
+{
+    public readonly ReadOnlySpan<T> Span = span;
+    public readonly TValue Value = value;
+
+    public void Deconstruct(out ReadOnlySpan<T> span, out TValue value)
+    {
+        span = this.Span; value = this.Value;
     }
 }
 
