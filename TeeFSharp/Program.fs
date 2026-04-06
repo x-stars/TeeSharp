@@ -19,25 +19,25 @@ type CommandOptions =
 
     override _.ToString() = nameof CommandOptions
 
-    static member Parse(args: string[]) =
-        let rec parseRest args result =
+    static member TryParse(args: string[]) =
+        let rec tryParseRest args result =
             match args with
             | [] -> Ok { result with Files = List.rev result.Files }
             | ("-?" | "-h" | "--help") :: rest ->
-                parseRest rest { result with Help = true }
+                tryParseRest rest { result with Help = true }
             | ("-a" | "--append") :: rest ->
-                parseRest rest { result with Append = true }
+                tryParseRest rest { result with Append = true }
             | ("-b" | "--buffer-size") :: PositiveInt32 value :: rest ->
-                parseRest rest { result with BufferSize = value }
+                tryParseRest rest { result with BufferSize = value }
             | ("-b" | "--buffer-size") as arg :: nextArg :: _ ->
                 Error (arg + " " + nextArg)
             | ("-b" | "--buffer-size") as arg :: [] -> Error arg
             | "--" :: rest ->
                 Ok { result with Files = (List.rev result.Files) @ rest }
-            | arg :: _ when arg.StartsWith('-') && (arg.Length > 1) -> Error arg
+            | arg :: _ when (arg.Length > 1) && (arg.[0] = '-') -> Error arg
             | arg :: rest ->
-                parseRest rest { result with Files = arg :: result.Files }
-        parseRest (args |> Array.toList) {
+                tryParseRest rest { result with Files = arg :: result.Files }
+        tryParseRest (args |> Array.toList) {
             Help = false; Append = false
             BufferSize = 4096; Files = []
         }
@@ -69,7 +69,7 @@ let invalidOptMessage (option: string) = seq {
 }
 
 let parseCmdOpts args =
-    match CommandOptions.Parse(args) with
+    match CommandOptions.TryParse(args) with
     | Error invalidOpt ->
         invalidOptMessage invalidOpt
         |> Seq.iter Console.Error.WriteLine

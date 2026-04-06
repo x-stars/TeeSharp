@@ -1,11 +1,6 @@
-﻿var cmdOpts = default(CommandOptions);
-try
+﻿if (CommandOptions.TryParse(args, out var cmdOpts) is string error)
 {
-    cmdOpts = CommandOptions.Parse(args);
-}
-catch (ArgumentOutOfRangeException ex)
-{
-    foreach (var line in GetInvalidOptionMessage(ex.ParamName!))
+    foreach (var line in GetInvalidOptionMessage(error))
     {
         Console.Error.WriteLine(line);
     }
@@ -105,35 +100,34 @@ static partial class Program
 
 readonly record struct CommandOptions(bool Help, bool Append, int BufferSize, IEnumerable<string> Files)
 {
-    public static CommandOptions Parse(string[] args)
+    public static string? TryParse(string[] args, out CommandOptions result)
     {
+        var error = (string?)null;
         var current = (ReadOnlySpan<string>)args;
-        var result = new CommandOptions() { BufferSize = 4096, Files = [] };
-        while (current is not [])
+        result = new CommandOptions() { BufferSize = 4096, Files = [] };
+        while ((current is not []) && (error is null))
         {
-            (current, result) = current switch
+            (current, (result, error)) = current switch
             {
-                [] => new SpanValuePair<string, CommandOptions>([], result),
+                [] => new SpanValuePair<string, (CommandOptions, string?)>([], (result, error)),
                 ["-?" or "-h" or "--help", .. var rest] =>
-                    new(rest, result with { Help = true }),
+                    new(rest, (result with { Help = true }, error)),
                 ["-a" or "--append", .. var rest] =>
-                    new(rest, result with { Append = true }),
+                    new(rest, (result with { Append = true }, error)),
                 ["-b" or "--buffer-size", var nextArg, .. var rest]
                 when int.TryParse(nextArg, out var value) && value > 0 =>
-                    new(rest, result with { BufferSize = value }),
+                    new(rest, (result with { BufferSize = value }, error)),
                 [("-b" or "--buffer-size") and var arg, var nextArg, ..] =>
-                    throw new ArgumentOutOfRangeException($"{arg} {nextArg}"),
-                [("-b" or "--buffer-size") and var arg] =>
-                    throw new ArgumentOutOfRangeException(arg),
+                    new([], (result, $"{arg} {nextArg}")),
+                [("-b" or "--buffer-size") and var arg] => new([], (result, arg)),
                 ["--", .. var rest] =>
-                    new([], result with { Files = result.Files.Concat(rest.ToArray()) }),
-                [['-', _, ..] arg, ..] =>
-                    throw new ArgumentOutOfRangeException(arg),
+                    new([], (result with { Files = result.Files.Concat(rest.ToArray()) }, error)),
+                [['-', _, ..] arg, ..] => new([], (result, arg)),
                 [var arg, .. var rest] =>
-                    new(rest, result with { Files = result.Files.Append(arg) }),
+                    new(rest, (result with { Files = result.Files.Append(arg) }, error)),
             };
         }
-        return result;
+        return error;
     }
 }
 
