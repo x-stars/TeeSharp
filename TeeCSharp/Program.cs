@@ -18,7 +18,7 @@ if (cmdOpts.Help)
 using var stdin = Console.OpenStandardInput();
 using var stdout = Console.OpenStandardOutput();
 var fileMode = cmdOpts.Append ? FileMode.Append : FileMode.Create;
-var streams = Array.Empty<Stream>();
+var streams = (Stream[])[];
 try
 {
     streams = [.. cmdOpts.Files.Select(

@@ -17,6 +17,7 @@ type CommandOptions =
         Files: string list
     }
 
+    // Reflection disabled, unable to use the auto-generated Printf module-based ToString().
     override _.ToString() = nameof CommandOptions
 
     static member TryParse(args: string[]) =
@@ -38,8 +39,7 @@ type CommandOptions =
             | arg :: rest ->
                 tryParseRest rest { result with Files = arg :: result.Files }
         tryParseRest (args |> Array.toList) {
-            Help = false; Append = false
-            BufferSize = 4096; Files = []
+            Help = false; Append = false; BufferSize = 4096; Files = []
         }
 
 let commandName =
@@ -47,8 +47,8 @@ let commandName =
     let cmdName = Path.GetFileNameWithoutExtension(cmdPath)
     let cmdExt = Path.GetExtension(cmdPath)
     let hasPathExt = Environment.OSVersion.Platform < PlatformID.Unix
+    // Don't use interpolated strings when reflection disabled.
     if hasPathExt && (cmdExt.Length > 0)
-        // Don't use interpolated strings when reflection disabled.
         then cmdName + "[" + cmdExt + "]" else Path.GetFileName(cmdPath)
 
 let helpMessage = seq {
