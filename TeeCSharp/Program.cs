@@ -105,7 +105,7 @@ readonly record struct CommandOptions(bool Help, bool Append, int BufferSize, IE
         var error = (string?)null;
         var current = (ReadOnlySpan<string>)args;
         result = new CommandOptions() { BufferSize = 4096, Files = [] };
-        while ((current is not []) && (error is null))
+        while (current is not [])
         {
             (current, (result, error)) = current switch
             {
