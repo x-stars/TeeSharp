@@ -43,7 +43,7 @@ type CommandOptions =
         }
 
 let commandName =
-    let cmdPath = Environment.GetCommandLineArgs()[0]
+    let cmdPath = Environment.GetCommandLineArgs().[0]
     let cmdName = Path.GetFileNameWithoutExtension(cmdPath)
     let cmdExt = Path.GetExtension(cmdPath)
     let hasPathExt = Environment.OSVersion.Platform < PlatformID.Unix
