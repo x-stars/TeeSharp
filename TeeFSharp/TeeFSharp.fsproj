@@ -20,7 +20,6 @@
 
   <Import Project="..\BuildItems\Trimming.Build.props" />
   <Import Project="..\BuildItems\NativeAOT.Build.props" />
-  <Import Project="..\BuildItems\WriteAssemblyInfo.Build.targets" />
 
   <ItemGroup>
     <Compile Include="Program.fs" />
