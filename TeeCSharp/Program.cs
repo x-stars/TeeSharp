@@ -103,42 +103,32 @@ readonly record struct CommandOptions(bool Help, bool Append, int BufferSize, IE
     public static string? TryParse(string[] args, out CommandOptions result)
     {
         var error = (string?)null;
-        var current = (ReadOnlySpan<string>)args;
+        var current = (ArraySegment<string>)args;
         result = new CommandOptions() { BufferSize = 4096, Files = [] };
         while (current is not [])
         {
-            (current, (result, error)) = current switch
+            (current, result, error) = current switch
             {
-                [] => new SpanValuePair<string, (CommandOptions, string?)>([], (result, error)),
+                [] => ([], result, error),
                 ["-?" or "-h" or "--help", .. var rest] =>
-                    new(rest, (result with { Help = true }, error)),
+                    (rest, result with { Help = true }, error),
                 ["-a" or "--append", .. var rest] =>
-                    new(rest, (result with { Append = true }, error)),
+                    (rest, result with { Append = true }, error),
                 ["-b" or "--buffer-size", var nextArg, .. var rest]
                 when int.TryParse(nextArg, out var value) && value > 0 =>
-                    new(rest, (result with { BufferSize = value }, error)),
+                    (rest, result with { BufferSize = value }, error),
                 [("-b" or "--buffer-size") and var arg, var nextArg, ..] =>
-                    new([], (result, $"{arg} {nextArg}")),
-                [("-b" or "--buffer-size") and var arg] => new([], (result, arg)),
+                    ([], result, error: $"{arg} {nextArg}"),
+                [("-b" or "--buffer-size") and var arg] =>
+                    ([], result, error: arg),
                 ["--", .. var rest] =>
-                    new([], (result with { Files = result.Files.Concat(rest.ToArray()) }, error)),
-                [['-', _, ..] arg, ..] => new([], (result, arg)),
+                    ([], result with { Files = result.Files.Concat(rest) }, error),
+                [['-', _, ..] arg, ..] => ([], result, error: arg),
                 [var arg, .. var rest] =>
-                    new(rest, (result with { Files = result.Files.Append(arg) }, error)),
+                    (rest, result with { Files = result.Files.Append(arg) }, error),
             };
         }
         return error;
-    }
-}
-
-readonly ref struct SpanValuePair<T, TValue>(ReadOnlySpan<T> span, TValue value)
-{
-    public readonly ReadOnlySpan<T> Span = span;
-    public readonly TValue Value = value;
-
-    public void Deconstruct(out ReadOnlySpan<T> span, out TValue value)
-    {
-        span = this.Span; value = this.Value;
     }
 }
 
