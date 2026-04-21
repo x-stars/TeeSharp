@@ -28,11 +28,11 @@ type CommandOptions =
                 tryParseRest rest { result with Help = true }
             | ("-a" | "--append") :: rest ->
                 tryParseRest rest { result with Append = true }
-            | ("-b" | "--buffer-size") :: PositiveInt32 value :: rest ->
-                tryParseRest rest { result with BufferSize = value }
-            | ("-b" | "--buffer-size") as arg :: nextArg :: _ ->
-                Error (arg + " " + nextArg)
-            | ("-b" | "--buffer-size") as arg :: [] -> Error arg
+            | ("-b" | "--buffer-size") as arg :: nextArg :: rest ->
+                match nextArg with
+                | PositiveInt32 value ->
+                    tryParseRest rest { result with BufferSize = value }
+                | _ -> Error (arg + " " + nextArg)
             | "--" :: rest ->
                 Ok { result with Files = (List.rev result.Files) @ rest }
             | arg :: _ when (arg.Length > 1) && (arg.[0] = '-') -> Error arg

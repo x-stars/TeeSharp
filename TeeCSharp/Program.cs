@@ -114,13 +114,10 @@ readonly record struct CommandOptions(bool Help, bool Append, int BufferSize, IE
                     (rest, result with { Help = true }, error),
                 ["-a" or "--append", .. var rest] =>
                     (rest, result with { Append = true }, error),
-                ["-b" or "--buffer-size", var nextArg, .. var rest]
-                when int.TryParse(nextArg, out var value) && value > 0 =>
-                    (rest, result with { BufferSize = value }, error),
-                [("-b" or "--buffer-size") and var arg, var nextArg, ..] =>
-                    ([], result, error: $"{arg} {nextArg}"),
-                [("-b" or "--buffer-size") and var arg] =>
-                    ([], result, error: arg),
+                [("-b" or "--buffer-size") and var arg, var nextArg, .. var rest] =>
+                    (int.TryParse(nextArg, out var value) && value > 0) ?
+                        (rest, result with { BufferSize = value }, error) :
+                        ([], result, error: $"{arg} {nextArg}"),
                 ["--", .. var rest] =>
                     ([], result with { Files = result.Files.Concat(rest) }, error),
                 [['-', _, ..] arg, ..] => ([], result, error: arg),
