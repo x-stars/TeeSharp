@@ -89,12 +89,12 @@ static partial class Program
 {
     internal static string GetCommandName()
     {
-        var cmdPath = Environment.GetCommandLineArgs()[0];
+        var cmdPath = Environment.GetCommandLineArgs()[0].AsSpan();
         var cmdName = Path.GetFileNameWithoutExtension(cmdPath);
         var cmdExt = Path.GetExtension(cmdPath);
         var hasPathExt = Environment.OSVersion.Platform < PlatformID.Unix;
         return (hasPathExt && (cmdExt.Length > 0)) ?
-            $"{cmdName}[{cmdExt}]" : Path.GetFileName(cmdPath);
+            $"{cmdName}[{cmdExt}]" : Path.GetFileName(cmdPath).ToString();
     }
 }
 
