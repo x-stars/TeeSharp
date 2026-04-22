@@ -2,12 +2,6 @@
 open System.IO
 open System.Threading.Tasks
 
-[<return: Struct>]
-let inline (|PositiveInt32|_|) (text: string) =
-    match Int32.TryParse(text) with
-    | true, result when result > 0 -> ValueSome result
-    | _, _ -> ValueNone
-
 [<Struct; NoEquality; NoComparison>]
 type CommandOptions =
     {
@@ -29,10 +23,10 @@ type CommandOptions =
             | ("-a" | "--append") :: rest ->
                 tryParseRest rest { result with Append = true }
             | ("-b" | "--buffer-size") as arg :: nextArg :: rest ->
-                match nextArg with
-                | PositiveInt32 value ->
+                match Int32.TryParse(nextArg) with
+                | true, value when value > 0 ->
                     tryParseRest rest { result with BufferSize = value }
-                | _ -> Error (arg + " " + nextArg)
+                | _, _ -> Error (arg + " " + nextArg)
             | "--" :: rest ->
                 Ok { result with Files = (List.rev result.Files) @ rest }
             | arg :: _ when (arg.Length > 1) && (arg.[0] = '-') -> Error arg
@@ -102,13 +96,13 @@ let openStreams cmdOpts =
 let rec copyInput (stdin: Stream, stdout: Stream, streams: Stream[])
                   (buffer: byte[], lastBuffer: byte[])
                   (lastStdoutTask: Task, lastStreamTasks: Task[]) =
-    let lengthTask = task {
+    let readWriteTask = task {
         let! length = stdin.ReadAsync(buffer)
         let! _ = lastStdoutTask
         let! _ = Task.WhenAll(lastStreamTasks)
         return length
     }
-    match lengthTask.Result with
+    match readWriteTask.Result with
     | 0 -> ()
     | length ->
         let streamTasks = streams |> Array.map _.WriteAsync(buffer, 0, length)
