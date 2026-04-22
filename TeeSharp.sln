@@ -7,6 +7,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "BuildItems", "BuildItems", 
 	ProjectSection(SolutionItems) = preProject
 		BuildItems\AssemblyInfo.Build.props = BuildItems\AssemblyInfo.Build.props
 		BuildItems\NativeAOT.Build.props = BuildItems\NativeAOT.Build.props
+		BuildItems\Trimming.Build.props = BuildItems\Trimming.Build.props
+		BuildItems\WriteAssemblyInfo.Build.targets = BuildItems\WriteAssemblyInfo.Build.targets
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Configurations", "Configurations", "{2C237306-5491-48A9-8A6D-7D1AF313FEE6}"

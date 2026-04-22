@@ -2,12 +2,6 @@
 open System.IO
 open System.Threading.Tasks
 
-[<return: Struct>]
-let inline (|PositiveInt32|_|) (text: string) =
-    match Int32.TryParse(text) with
-    | true, result when result > 0 -> ValueSome result
-    | _, _ -> ValueNone
-
 [<Struct; NoEquality; NoComparison>]
 type CommandOptions =
     {
@@ -17,38 +11,38 @@ type CommandOptions =
         Files: string list
     }
 
+    // Reflection disabled, unable to use the auto-generated Printf module-based ToString().
     override _.ToString() = nameof CommandOptions
 
-    static member Parse(args: string[]) =
-        let rec parseRest args result =
+    static member TryParse(args: string[]) =
+        let rec tryParseRest args result =
             match args with
             | [] -> Ok { result with Files = List.rev result.Files }
             | ("-?" | "-h" | "--help") :: rest ->
-                parseRest rest { result with Help = true }
+                tryParseRest rest { result with Help = true }
             | ("-a" | "--append") :: rest ->
-                parseRest rest { result with Append = true }
-            | ("-b" | "--buffer-size") :: PositiveInt32 value :: rest ->
-                parseRest rest { result with BufferSize = value }
-            | ("-b" | "--buffer-size") as arg :: nextArg :: _ ->
-                Error (arg + " " + nextArg)
-            | ("-b" | "--buffer-size") as arg :: [] -> Error arg
+                tryParseRest rest { result with Append = true }
+            | ("-b" | "--buffer-size") as arg :: nextArg :: rest ->
+                match Int32.TryParse(nextArg) with
+                | true, value when value > 0 ->
+                    tryParseRest rest { result with BufferSize = value }
+                | _, _ -> Error (arg + " " + nextArg)
             | "--" :: rest ->
                 Ok { result with Files = (List.rev result.Files) @ rest }
-            | arg :: _ when arg.StartsWith('-') && (arg.Length > 1) -> Error arg
+            | arg :: _ when (arg.Length > 1) && (arg.[0] = '-') -> Error arg
             | arg :: rest ->
-                parseRest rest { result with Files = arg :: result.Files }
-        parseRest (args |> Array.toList) {
-            Help = false; Append = false
-            BufferSize = 4096; Files = []
+                tryParseRest rest { result with Files = arg :: result.Files }
+        tryParseRest (args |> Array.toList) {
+            Help = false; Append = false; BufferSize = 4096; Files = []
         }
 
 let commandName =
-    let cmdPath = Environment.GetCommandLineArgs()[0]
+    let cmdPath = Environment.GetCommandLineArgs().[0]
     let cmdName = Path.GetFileNameWithoutExtension(cmdPath)
     let cmdExt = Path.GetExtension(cmdPath)
     let hasPathExt = Environment.OSVersion.Platform < PlatformID.Unix
+    // Don't use interpolated strings when reflection disabled.
     if hasPathExt && (cmdExt.Length > 0)
-        // Don't use interpolated strings when reflection disabled.
         then cmdName + "[" + cmdExt + "]" else Path.GetFileName(cmdPath)
 
 let helpMessage = seq {
@@ -69,7 +63,7 @@ let invalidOptMessage (option: string) = seq {
 }
 
 let parseCmdOpts args =
-    match CommandOptions.Parse(args) with
+    match CommandOptions.TryParse(args) with
     | Error invalidOpt ->
         invalidOptMessage invalidOpt
         |> Seq.iter Console.Error.WriteLine
@@ -102,13 +96,13 @@ let openStreams cmdOpts =
 let rec copyInput (stdin: Stream, stdout: Stream, streams: Stream[])
                   (buffer: byte[], lastBuffer: byte[])
                   (lastStdoutTask: Task, lastStreamTasks: Task[]) =
-    let lengthTask = task {
+    let readWriteTask = task {
         let! length = stdin.ReadAsync(buffer)
         let! _ = lastStdoutTask
         let! _ = Task.WhenAll(lastStreamTasks)
         return length
     }
-    match lengthTask.Result with
+    match readWriteTask.Result with
     | 0 -> ()
     | length ->
         let streamTasks = streams |> Array.map _.WriteAsync(buffer, 0, length)

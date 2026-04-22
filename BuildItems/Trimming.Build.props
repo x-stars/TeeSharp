@@ -1,0 +1,17 @@
+<Project>
+
+  <PropertyGroup>
+    <IsTrimmable Condition="
+      $([MSBuild]::IsTargetFrameworkCompatible('$(TargetFramework)','net5.0'))
+    ">true</IsTrimmable>
+    <IsAotCompatible Condition="
+      $([MSBuild]::IsTargetFrameworkCompatible('$(TargetFramework)','net8.0'))
+    ">true</IsAotCompatible>
+    <DefineConstants>$(DefineConstants);IS_TRIMMABLE</DefineConstants>
+  </PropertyGroup>
+
+  <ItemGroup Condition="'$(IsTrimmable)'!='true'">
+    <AssemblyMetadata Include="IsTrimmable" Value="True" />
+  </ItemGroup>
+
+</Project>

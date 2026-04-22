@@ -1,11 +1,6 @@
-﻿var cmdOpts = default(CommandOptions);
-try
+﻿if (CommandOptions.TryParse(args, out var cmdOpts) is string error)
 {
-    cmdOpts = CommandOptions.Parse(args);
-}
-catch (ArgumentOutOfRangeException ex)
-{
-    foreach (var line in GetInvalidOptionMessage(ex.ParamName!))
+    foreach (var line in GetInvalidOptionMessage(error))
     {
         Console.Error.WriteLine(line);
     }
@@ -23,7 +18,7 @@ if (cmdOpts.Help)
 using var stdin = Console.OpenStandardInput();
 using var stdout = Console.OpenStandardOutput();
 var fileMode = cmdOpts.Append ? FileMode.Append : FileMode.Create;
-var streams = Array.Empty<Stream>();
+var streams = (Stream[])[];
 try
 {
     streams = [.. cmdOpts.Files.Select(
@@ -94,46 +89,43 @@ static partial class Program
 {
     internal static string GetCommandName()
     {
-        var cmdPath = Environment.GetCommandLineArgs()[0];
+        var cmdPath = Environment.GetCommandLineArgs()[0].AsSpan();
         var cmdName = Path.GetFileNameWithoutExtension(cmdPath);
         var cmdExt = Path.GetExtension(cmdPath);
         var hasPathExt = Environment.OSVersion.Platform < PlatformID.Unix;
         return (hasPathExt && (cmdExt.Length > 0)) ?
-            $"{cmdName}[{cmdExt}]" : Path.GetFileName(cmdPath);
+            $"{cmdName}[{cmdExt}]" : Path.GetFileName(cmdPath).ToString();
     }
 }
 
 readonly record struct CommandOptions(bool Help, bool Append, int BufferSize, IEnumerable<string> Files)
 {
-    public static CommandOptions Parse(string[] args)
+    public static string? TryParse(string[] args, out CommandOptions result)
     {
+        var error = (string?)null;
         var current = ConsList.Create(args);
-        var result = new CommandOptions() { BufferSize = 4096, Files = [] };
+        result = new CommandOptions() { BufferSize = 4096, Files = [] };
         while (current is not null)
         {
-            (current, result) = current switch
+            (current, result, error) = current switch
             {
-                null => (null, result),
+                null => (null, result, error),
                 ("-?" or "-h" or "--help", var rest) =>
-                    (rest, result with { Help = true }),
+                    (rest, result with { Help = true }, error),
                 ("-a" or "--append", var rest) =>
-                    (rest, result with { Append = true }),
-                ("-b" or "--buffer-size", (var nextArg, var rest))
-                when int.TryParse(nextArg, out var value) && value > 0 =>
-                    (rest, result with { BufferSize = value }),
-                (("-b" or "--buffer-size") and var arg, (var nextArg, _)) =>
-                    throw new ArgumentOutOfRangeException($"{arg} {nextArg}"),
-                (("-b" or "--buffer-size") and var arg, null) =>
-                    throw new ArgumentOutOfRangeException(arg),
+                    (rest, result with { Append = true }, error),
+                (("-b" or "--buffer-size") and var arg, (var nextArg, var rest)) =>
+                    (int.TryParse(nextArg, out var value) && value > 0) ?
+                        (rest, result with { BufferSize = value }, error) :
+                        (null, result, error: $"{arg} {nextArg}"),
                 ("--", var rest) =>
-                    (null, result with { Files = result.Files.Concat(rest.AsEnumerable()) }),
-                (['-', _, ..] arg, _) =>
-                    throw new ArgumentOutOfRangeException(arg),
+                    (null, result with { Files = result.Files.Concat(rest.AsEnumerable()) }, error),
+                (['-', _, ..] arg, _) => (null, result, error: arg),
                 (var arg, var rest) =>
-                    (rest, result with { Files = result.Files.Append(arg) }),
+                    (rest, result with { Files = result.Files.Append(arg) }, error),
             };
         }
-        return result;
+        return error;
     }
 }
 

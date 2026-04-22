@@ -1,0 +1,48 @@
+<Project>
+
+  <PropertyGroup>
+    <_LanguageExt Condition="'$(Language)'!='F#'">.cs</_LanguageExt>
+    <_LanguageExt Condition="'$(Language)'=='F#'">.fs</_LanguageExt>
+    <_AssemblyInfoFileDir>obj\$(Configuration)\$(TargetFramework)</_AssemblyInfoFileDir>
+    <_AssemblyInfoFileName>$(MSBuildProjectName).AssemblyInfoConst.g$(_LanguageExt)</_AssemblyInfoFileName>
+    <_AssemblyInfoFilePath>$(_AssemblyInfoFileDir)\$(_AssemblyInfoFileName)</_AssemblyInfoFilePath>
+  </PropertyGroup>
+
+  <ItemGroup Condition="'$(Language)'!='F#'">
+    <_AssemblyInfoFileContent Include="// &lt;auto-generated/&gt;" />
+    <_AssemblyInfoFileContent Include="internal static partial class AssemblyInfo" />
+    <_AssemblyInfoFileContent Include="{" />
+    <_AssemblyInfoFileContent
+      Include="%20%20%20%20internal const string Title = &quot;$(AssemblyTitle)&quot;%3B"
+    />
+    <_AssemblyInfoFileContent
+      Include="%20%20%20%20internal const string Version = &quot;$(Version)&quot;%3B"
+    />
+    <_AssemblyInfoFileContent Include="}" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(Language)'=='F#'">
+    <_AssemblyInfoFileContent Include="// &lt;auto-generated/&gt;" />
+    <_AssemblyInfoFileContent Include="module internal AssemblyInfo" />
+    <_AssemblyInfoFileContent
+      Include="let [&lt;Literal&gt;] internal Title: string = &quot;$(AssemblyTitle)&quot;"
+    />
+    <_AssemblyInfoFileContent
+      Include="let [&lt;Literal&gt;] internal Version: string = &quot;$(Version)&quot;"
+    />
+  </ItemGroup>
+
+  <Target Name="_WriteAssemblyInfoFile" BeforeTargets="CoreCompile">
+    <WriteLinesToFile
+      File="$(_AssemblyInfoFilePath)"
+      Lines="@(_AssemblyInfoFileContent)"
+      Overwrite="true"
+      WriteOnlyWhenDifferent="true"
+    />
+  </Target>
+
+  <ItemGroup>
+    <Compile Include="$(_AssemblyInfoFilePath)" Visible="false" />
+  </ItemGroup>
+
+</Project>

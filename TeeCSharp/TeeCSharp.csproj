@@ -20,6 +20,7 @@
     <IsPackable>false</IsPackable>
   </PropertyGroup>
 
+  <Import Project="..\BuildItems\Trimming.Build.props" />
   <Import Project="..\BuildItems\NativeAOT.Build.props" />
 
   <ItemGroup>
