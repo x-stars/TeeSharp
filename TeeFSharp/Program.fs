@@ -81,8 +81,8 @@ let openStreams cmdOpts =
     let fileMode = if cmdOpts.Append then FileMode.Append else FileMode.Create
     try
         let streams = files |> Array.map (fun file ->
-            if file = "-" then stdout else new FileStream(
-                file, fileMode, FileAccess.Write, FileShare.ReadWrite))
+            if file = "-" then stdout else new FileStream(file, fileMode,
+                FileAccess.Write, FileShare.ReadWrite, bufferSize = 4096, useAsync = true))
         Ok struct (stdin, stdout, streams, cmdOpts.BufferSize)
     with
     | :? IOException as ex ->
