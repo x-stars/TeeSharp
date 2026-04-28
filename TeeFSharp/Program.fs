@@ -101,8 +101,8 @@ let rec copyInput (stdin: Stream, stdout: Stream, streams: Stream[])
         let! _ = lastStdoutTask
         let! _ = Task.WhenAll(lastStreamTasks)
         return length
-    }
-    match readWriteTask.Result with
+    } // Use sync wait to write in tail-rec style. Safe for the last step.
+    match readWriteTask.GetAwaiter().GetResult() with
     | 0 -> ()
     | length ->
         let streamTasks = streams |> Array.map _.WriteAsync(buffer, 0, length)
