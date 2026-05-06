@@ -5,7 +5,6 @@
     <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
     <AssemblyName>tee-fs</AssemblyName>
     <LangVersion>latest</LangVersion>
-    <IsTrimmable>true</IsTrimmable>
     <EnableNETAnalyzers>true</EnableNETAnalyzers>
   </PropertyGroup>
 
