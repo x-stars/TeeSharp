@@ -81,8 +81,8 @@ let openStreams cmdOpts =
     let fileMode = if cmdOpts.Append then FileMode.Append else FileMode.Create
     try
         let streams = files |> Array.map (fun file ->
-            if file = "-" then stdout else new FileStream(
-                file, fileMode, FileAccess.Write, FileShare.ReadWrite))
+            if file = "-" then stdout else new FileStream(file, fileMode,
+                FileAccess.Write, FileShare.ReadWrite, bufferSize = 4096, useAsync = true))
         Ok struct (stdin, stdout, streams, cmdOpts.BufferSize)
     with
     | :? IOException as ex ->
@@ -101,8 +101,8 @@ let rec copyInput (stdin: Stream, stdout: Stream, streams: Stream[])
         let! _ = lastStdoutTask
         let! _ = Task.WhenAll(lastStreamTasks)
         return length
-    }
-    match readWriteTask.Result with
+    } // Use sync wait to write in tail-rec style. Safe for the last step.
+    match readWriteTask.GetAwaiter().GetResult() with
     | 0 -> ()
     | length ->
         let streamTasks = streams |> Array.map _.WriteAsync(buffer, 0, length)

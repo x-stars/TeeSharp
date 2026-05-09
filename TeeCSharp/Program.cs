@@ -22,8 +22,8 @@ var streams = (Stream[])[];
 try
 {
     streams = [.. cmdOpts.Files.Select(
-        file => (file == "-") ? stdout : new FileStream(
-            file, fileMode, FileAccess.Write, FileShare.ReadWrite))];
+        file => (file == "-") ? stdout : new FileStream(file, fileMode,
+            FileAccess.Write, FileShare.ReadWrite, bufferSize: 4096, useAsync: true))];
 }
 catch (IOException ex)
 {
