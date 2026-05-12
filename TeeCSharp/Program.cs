@@ -22,8 +22,8 @@ var streams = (Stream[])[];
 try
 {
     streams = [.. cmdOpts.Files.Select(
-        file => (file == "-") ? stdout : new FileStream(file, fileMode,
-            FileAccess.Write, FileShare.ReadWrite, bufferSize: 4096, useAsync: true))];
+        file => (file == "-") ? stdout : new FileStream(
+            file, fileMode, FileAccess.Write, FileShare.ReadWrite))];
 }
 catch (IOException ex)
 {
@@ -40,7 +40,7 @@ using var streamsDisposable = new DisposeAction(() =>
 {
     foreach (var stream in streams)
     {
-        stream?.Dispose();
+        stream.Dispose();
     }
 });
 
