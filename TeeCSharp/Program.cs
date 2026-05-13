@@ -23,7 +23,7 @@ try
 {
     streams = [.. cmdOpts.Files.Select(
         file => (file == "-") ? stdout : new FileStream(
-            file, fileMode, FileAccess.Write, FileShare.ReadWrite))];
+            file, fileMode, FileAccess.Write, FileShare.ReadWrite, bufferSize: 1))];
 }
 catch (IOException ex)
 {
