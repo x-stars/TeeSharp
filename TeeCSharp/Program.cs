@@ -45,23 +45,23 @@ using var streamsDisposable = new DisposeAction(() =>
 });
 
 var length = 0;
-var readBuffer = new byte[cmdOpts.BufferSize];
-var writeBuffer = new byte[cmdOpts.BufferSize];
-var stdoutTask = Task.CompletedTask;
-var streamTasks = Array.ConvertAll(streams, stream => Task.CompletedTask);
+var readBuffer = (new byte[cmdOpts.BufferSize]).AsMemory();
+var writeBuffer = (new byte[cmdOpts.BufferSize]).AsMemory();
+var stdoutTask = ValueTask.CompletedTask;
+var streamTasks = Array.ConvertAll(streams, stream => ValueTask.CompletedTask);
 while ((length = await stdin.ReadAsync(readBuffer)) != 0)
 {
     await stdoutTask;
-    await Task.WhenAll(streamTasks);
+    foreach (var streamTask in streamTasks) { await streamTask; }
     (writeBuffer, readBuffer) = (readBuffer, writeBuffer);
     foreach (var index in ..streams.Length)
     {
-        streamTasks[index] = streams[index].WriteAsync(writeBuffer, 0, length);
+        streamTasks[index] = streams[index].WriteAsync(writeBuffer[..length]);
     }
-    stdoutTask = stdout.WriteAsync(writeBuffer, 0, length);
+    stdoutTask = stdout.WriteAsync(writeBuffer[..length]);
 }
 await stdoutTask;
-await Task.WhenAll(streamTasks);
+foreach (var streamTask in streamTasks) { await streamTask; }
 return 0;
 
 static IEnumerable<string> GetHelpMessage()
