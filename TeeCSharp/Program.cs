@@ -21,7 +21,7 @@ var fileMode = cmdOpts.Append ? FileMode.Append : FileMode.Create;
 var streams = (Stream[])[];
 try
 {
-    streams = [.. cmdOpts.Files.Select(
+    streams = [.. cmdOpts.Files.AsEnumerable().Select(
         file => (file == "-") ? stdout : new FileStream(
             file, fileMode, FileAccess.Write, FileShare.ReadWrite, bufferSize: 1))];
 }
@@ -98,18 +98,18 @@ static partial class Program
     }
 }
 
-readonly record struct CommandOptions(bool Help, bool Append, int BufferSize, IEnumerable<string> Files)
+readonly record struct CommandOptions(bool Help, bool Append, int BufferSize, ConsList<string>? Files)
 {
     public static string? TryParse(string[] args, out CommandOptions result)
     {
         var error = (string?)null;
         var current = ConsList.Create(args);
-        result = new CommandOptions() { BufferSize = 4096, Files = [] };
+        result = new CommandOptions() { BufferSize = 4096, Files = null };
         while (current is not null)
         {
             (current, result, error) = current switch
             {
-                null => (null, result, error),
+                null => (null, result, error),  // Unreachable branch.
                 ("-?" or "-h" or "--help", var rest) =>
                     (rest, result with { Help = true }, error),
                 ("-a" or "--append", var rest) =>
@@ -119,12 +119,13 @@ readonly record struct CommandOptions(bool Help, bool Append, int BufferSize, IE
                         (rest, result with { BufferSize = value }, error) :
                         (null, result, error: $"{arg} {nextArg}"),
                 ("--", var rest) =>
-                    (null, result with { Files = result.Files.Concat(rest.AsEnumerable()) }, error),
+                    (null, result with { Files = rest.Reverse().Concat(result.Files) }, error),
                 (['-', _, ..] arg, _) => (null, result, error: arg),
                 (var arg, var rest) =>
-                    (rest, result with { Files = result.Files.Append(arg) }, error),
+                    (rest, result with { Files = (arg, result.Files) }, error),
             };
         }
+        result = result with { Files = result.Files.Reverse() };
         return error;
     }
 }

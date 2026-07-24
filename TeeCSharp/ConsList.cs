@@ -26,6 +26,26 @@ static class ConsList
 		}
 		return result;
 	}
+	public static ConsList<T>? Reverse<T>(this ConsList<T>? source)
+	{
+		var result = (ConsList<T>?)null;
+		for (var current = source; current is var (head, tail); current = tail)
+		{
+			result = (head, result);
+		}
+		return result;
+	}
+	public static ConsList<T>? Concat<T>(this ConsList<T>? source, ConsList<T>? other)
+	{
+		if (source is null) { return other; }
+		if (source is (var item, null)) { return (item, other); }
+		var result = other;
+		for (var current = source.Reverse(); current is var (head, tail); current = tail)
+		{
+			result = (head, result);
+		}
+		return result;
+	}
 	public static IEnumerable<T> AsEnumerable<T>(this ConsList<T>? source)
 	{
 		for (var current = source; current is var (head, tail); current = tail)
