@@ -1,17 +1,11 @@
 ﻿if (CommandOptions.TryParse(args, out var cmdOpts) is string error)
 {
-    foreach (var line in GetInvalidOptionMessage(error))
-    {
-        Console.Error.WriteLine(line);
-    }
+    Console.Error.WriteLines(GetInvalidOptionMessage(error));
     return 1;
 }
 if (cmdOpts.Help)
 {
-    foreach (var line in GetHelpMessage())
-    {
-        Console.Out.WriteLine(line);
-    }
+    Console.Out.WriteLines(GetHelpMessage());
     return 0;
 }
 
@@ -36,13 +30,8 @@ catch (SystemException ex)
     Console.Error.WriteLine($"{nameof(SystemException)}: {ex.Message}");
     return 2;
 }
-using var streamsDisposable = new DisposeAction(() =>
-{
-    foreach (var stream in streams)
-    {
-        stream.Dispose();
-    }
-});
+using var streamsDisposable = new DisposeAction(
+    () => Array.ForEach(streams, stream => stream.Dispose()));
 
 var length = 0;
 var readBuffer = (new byte[cmdOpts.BufferSize]).AsMemory();
@@ -95,6 +84,14 @@ static partial class Program
         var hasPathExt = Environment.OSVersion.Platform < PlatformID.Unix;
         return (hasPathExt && (cmdExt.Length > 0)) ?
             $"{cmdName}[{cmdExt}]" : Path.GetFileName(cmdPath).ToString();
+    }
+
+    internal static void WriteLines(this TextWriter writer, IEnumerable<string> lines)
+    {
+        foreach (var line in lines)
+        {
+            writer.WriteLine(line);
+        }
     }
 }
 
