@@ -74,24 +74,26 @@ let parseCmdOpts args =
         Error 0
     | Ok cmdOpts -> Ok cmdOpts
 
-let openStreams cmdOpts =
-    let stdin = Console.OpenStandardInput()
-    let stdout = Console.OpenStandardOutput()
-    let files = cmdOpts.Files |> List.toArray
-    let fileMode = if cmdOpts.Append then FileMode.Append else FileMode.Create
+let openFileOrNull (stdout: Stream) append file =
     try
-        let streams = files |> Array.map (fun file ->
-            if file = "-" then stdout else new FileStream(
-                file, fileMode, FileAccess.Write, FileShare.ReadWrite, bufferSize = 1))
-        Ok struct (stdin, stdout, streams, cmdOpts.BufferSize)
+        let fileMode = if append then FileMode.Append else FileMode.Create
+        if file = "-" then stdout else new FileStream(
+            file, fileMode, FileAccess.Write, FileShare.ReadWrite, bufferSize = 1)
     with
     | :? IOException as ex ->
         // Reflection disabled, unable to get the actual type name.
         Console.Error.WriteLine((nameof IOException) + ": " + ex.Message)
-        Error 2
+        Stream.Null
     | :? SystemException as ex ->
         Console.Error.WriteLine((nameof SystemException) + ": " + ex.Message)
-        Error 2
+        Stream.Null
+
+let openStreams cmdOpts =
+    let stdin = Console.OpenStandardInput()
+    let stdout = Console.OpenStandardOutput()
+    let files = cmdOpts.Files |> List.toArray
+    let streams = files |> Array.map (openFileOrNull stdout cmdOpts.Append)
+    struct (stdin, stdout, streams, cmdOpts.BufferSize)
 
 let rec copyInput (stdin: Stream, stdout: Stream, streams: Stream[])
                   (buffer: byte[], lastBuffer: byte[])
@@ -115,7 +117,7 @@ let main args =
     let parseAndOpenResult =
         Ok args
         |> Result.bind parseCmdOpts
-        |> Result.bind openStreams
+        |> Result.map openStreams
     match parseAndOpenResult with
     | Error exitCode -> exitCode
     | Ok (stdin, stdout, streams, bufferSize) ->
@@ -127,4 +129,4 @@ let main args =
         copyInput (stdin, stdout, streams)
             (Array.zeroCreate bufferSize, Array.zeroCreate bufferSize)
             (Task.CompletedTask, streams |> Array.map (fun _ -> Task.CompletedTask))
-        0
+        if Array.IndexOf(streams, Stream.Null) >= 0 then 2 else 0

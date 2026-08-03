@@ -11,25 +11,8 @@ if (cmdOpts.Help)
 
 using var stdin = Console.OpenStandardInput();
 using var stdout = Console.OpenStandardOutput();
-var fileMode = cmdOpts.Append ? FileMode.Append : FileMode.Create;
-var streams = (Stream[])[];
-try
-{
-    streams = [.. cmdOpts.Files.Select(
-        file => (file == "-") ? stdout : new FileStream(
-            file, fileMode, FileAccess.Write, FileShare.ReadWrite, bufferSize: 1))];
-}
-catch (IOException ex)
-{
-    // Reflection disabled, unable to get the actual type name.
-    Console.Error.WriteLine($"{nameof(IOException)}: {ex.Message}");
-    return 2;
-}
-catch (SystemException ex)
-{
-    Console.Error.WriteLine($"{nameof(SystemException)}: {ex.Message}");
-    return 2;
-}
+var streams = cmdOpts.Files.Select(
+    file => OpenFileOrNull(file, cmdOpts.Append, stdout)).ToArray();
 using var streamsDisposable = new DisposeAction(
     () => Array.ForEach(streams, stream => stream.Dispose()));
 
@@ -51,7 +34,7 @@ while ((length = await stdin.ReadAsync(readBuffer)) != 0)
 }
 await stdoutTask;
 foreach (var streamTask in streamTasks) { await streamTask; }
-return 0;
+return Array.IndexOf(streams, Stream.Null) >= 0 ? 2 : 0;
 
 static IEnumerable<string> GetHelpMessage()
 {
@@ -72,6 +55,27 @@ static IEnumerable<string> GetInvalidOptionMessage(string option)
     var cmdName = Program.GetCommandName();
     yield return $"Invalid option: {option}";
     yield return $"Try '{cmdName} --help' for more information.";
+}
+
+static Stream OpenFileOrNull(string file, bool append, Stream stdout)
+{
+    try
+    {
+        var fileMode = append ? FileMode.Append : FileMode.Create;
+        return (file == "-") ? stdout : new FileStream(
+            file, fileMode, FileAccess.Write, FileShare.ReadWrite, bufferSize: 1);
+    }
+    catch (IOException ex)
+    {
+        // Reflection disabled, unable to get the actual type name.
+        Console.Error.WriteLine($"{nameof(IOException)}: {ex.Message}");
+        return Stream.Null;
+    }
+    catch (SystemException ex)
+    {
+        Console.Error.WriteLine($"{nameof(SystemException)}: {ex.Message}");
+        return Stream.Null;
+    }
 }
 
 static partial class Program
