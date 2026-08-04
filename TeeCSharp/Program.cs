@@ -1,48 +1,20 @@
 ﻿if (CommandOptions.TryParse(args, out var cmdOpts) is string error)
 {
-    foreach (var line in GetInvalidOptionMessage(error))
-    {
-        Console.Error.WriteLine(line);
-    }
+    Console.Error.WriteLines(GetInvalidOptionMessage(error));
     return 1;
 }
 if (cmdOpts.Help)
 {
-    foreach (var line in GetHelpMessage())
-    {
-        Console.Out.WriteLine(line);
-    }
+    Console.Out.WriteLines(GetHelpMessage());
     return 0;
 }
 
 using var stdin = Console.OpenStandardInput();
 using var stdout = Console.OpenStandardOutput();
-var fileMode = cmdOpts.Append ? FileMode.Append : FileMode.Create;
-var streams = (Stream[])[];
-try
-{
-    streams = [.. cmdOpts.Files.AsEnumerable().Select(
-        file => (file == "-") ? stdout : new FileStream(
-            file, fileMode, FileAccess.Write, FileShare.ReadWrite, bufferSize: 1))];
-}
-catch (IOException ex)
-{
-    // Reflection disabled, unable to get the actual type name.
-    Console.Error.WriteLine($"{nameof(IOException)}: {ex.Message}");
-    return 2;
-}
-catch (SystemException ex)
-{
-    Console.Error.WriteLine($"{nameof(SystemException)}: {ex.Message}");
-    return 2;
-}
-using var streamsDisposable = new DisposeAction(() =>
-{
-    foreach (var stream in streams)
-    {
-        stream.Dispose();
-    }
-});
+var streams = cmdOpts.Files.AsEnumerable().Select(
+    file => OpenFileOrNull(file, cmdOpts.Append, stdout)).ToArray();
+using var streamsDisposable = new DisposeAction(
+    () => Array.ForEach(streams, stream => stream.Dispose()));
 
 var length = 0;
 var readBuffer = (new byte[cmdOpts.BufferSize]).AsMemory();
@@ -62,7 +34,7 @@ while ((length = await stdin.ReadAsync(readBuffer)) != 0)
 }
 await stdoutTask;
 foreach (var streamTask in streamTasks) { await streamTask; }
-return 0;
+return (Array.IndexOf(streams, Stream.Null) >= 0) ? 2 : 0;
 
 static IEnumerable<string> GetHelpMessage()
 {
@@ -85,6 +57,27 @@ static IEnumerable<string> GetInvalidOptionMessage(string option)
     yield return $"Try '{cmdName} --help' for more information.";
 }
 
+static Stream OpenFileOrNull(string file, bool append, Stream stdout)
+{
+    try
+    {
+        var fileMode = append ? FileMode.Append : FileMode.Create;
+        return (file == "-") ? stdout : new FileStream(
+            file, fileMode, FileAccess.Write, FileShare.ReadWrite, bufferSize: 1);
+    }
+    catch (IOException ex)
+    {
+        // Reflection disabled, unable to get the actual type name.
+        Console.Error.WriteLine($"{nameof(IOException)}: {ex.Message}");
+        return Stream.Null;
+    }
+    catch (SystemException ex)
+    {
+        Console.Error.WriteLine($"{nameof(SystemException)}: {ex.Message}");
+        return Stream.Null;
+    }
+}
+
 static partial class Program
 {
     internal static string GetCommandName()
@@ -95,6 +88,14 @@ static partial class Program
         var hasPathExt = Environment.OSVersion.Platform < PlatformID.Unix;
         return (hasPathExt && (cmdExt.Length > 0)) ?
             $"{cmdName}[{cmdExt}]" : Path.GetFileName(cmdPath).ToString();
+    }
+
+    internal static void WriteLines(this TextWriter writer, IEnumerable<string> lines)
+    {
+        foreach (var line in lines)
+        {
+            writer.WriteLine(line);
+        }
     }
 }
 
