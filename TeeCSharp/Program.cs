@@ -34,7 +34,7 @@ while ((length = await stdin.ReadAsync(readBuffer)) != 0)
 }
 await stdoutTask;
 foreach (var streamTask in streamTasks) { await streamTask; }
-return Array.IndexOf(streams, Stream.Null) >= 0 ? 2 : 0;
+return (Array.IndexOf(streams, Stream.Null) >= 0) ? 2 : 0;
 
 static IEnumerable<string> GetHelpMessage()
 {
