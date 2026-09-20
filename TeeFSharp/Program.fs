@@ -129,4 +129,4 @@ let main args =
         copyInput (stdin, stdout, streams)
             (Array.zeroCreate bufferSize, Array.zeroCreate bufferSize)
             (Task.CompletedTask, streams |> Array.map (fun _ -> Task.CompletedTask))
-        if Array.IndexOf(streams, Stream.Null) >= 0 then 2 else 0
+        if streams |> Array.contains Stream.Null then 2 else 0
