@@ -10,7 +10,7 @@
 
   <Import Project="..\BuildItems\AssemblyInfo.Build.props" />
   <PropertyGroup>
-    <AssemblyTitle>$(Product) in F#</AssemblyTitle>
+    <AssemblyTitle>$(Product) F#</AssemblyTitle>
   </PropertyGroup>
 
   <PropertyGroup>

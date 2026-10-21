@@ -12,7 +12,7 @@
 
   <Import Project="..\BuildItems\AssemblyInfo.Build.props" />
   <PropertyGroup>
-    <AssemblyTitle>$(Product) in C#</AssemblyTitle>
+    <AssemblyTitle>$(Product) C#</AssemblyTitle>
   </PropertyGroup>
 
   <PropertyGroup>

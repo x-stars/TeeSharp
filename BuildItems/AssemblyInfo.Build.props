@@ -4,7 +4,7 @@
     <Authors>XstarS</Authors>
     <Company>XstarS</Company>
     <Version>1.0.0</Version>
-    <Product>.NET tee CLI</Product>
+    <Product>tee CLI in .NET</Product>
     <Copyright>Copyright © $(Company) 2023</Copyright>
     <FileVersion>$(Version.Split('-')[0]).0</FileVersion>
     <VersionMajor>$(Version.Split('.')[0])</VersionMajor>
