@@ -16,12 +16,11 @@ var streams = cmdOpts.Files.Select(
 using var streamsDisposable = new DisposeAction(
     () => Array.ForEach(streams, stream => stream.Dispose()));
 
-var length = 0;
 var readBuffer = (new byte[cmdOpts.BufferSize]).AsMemory();
 var writeBuffer = (new byte[cmdOpts.BufferSize]).AsMemory();
 var stdoutTask = ValueTask.CompletedTask;
 var streamTasks = Array.ConvertAll(streams, stream => ValueTask.CompletedTask);
-while ((length = await stdin.ReadAsync(readBuffer)) != 0)
+while (await stdin.ReadAsync(readBuffer) is var length and not 0)
 {
     await stdoutTask;
     foreach (var streamTask in streamTasks) { await streamTask; }
