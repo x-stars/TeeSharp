@@ -23,7 +23,7 @@ var streamTasks = Array.ConvertAll(streams, stream => ValueTask.CompletedTask);
 while (await stdin.ReadAsync(readBuffer) is var length and not 0)
 {
     await stdoutTask;
-    foreach (var streamTask in streamTasks) { await streamTask; }
+    foreach (var streamTask in streamTasks) await streamTask;
     (writeBuffer, readBuffer) = (readBuffer, writeBuffer);
     foreach (var index in ..streams.Length)
     {
@@ -32,7 +32,7 @@ while (await stdin.ReadAsync(readBuffer) is var length and not 0)
     stdoutTask = stdout.WriteAsync(writeBuffer[..length]);
 }
 await stdoutTask;
-foreach (var streamTask in streamTasks) { await streamTask; }
+foreach (var streamTask in streamTasks) await streamTask;
 return (Array.IndexOf(streams, Stream.Null) >= 0) ? 2 : 0;
 
 static IEnumerable<string> GetHelpMessage()
@@ -61,18 +61,18 @@ static Stream OpenFileOrNull(string file, bool append, Stream stdout)
     try
     {
         var fileMode = append ? FileMode.Append : FileMode.Create;
+        // Don't use the Windows Overlapped I/O on local files to avoid overhead.
         return (file == "-") ? stdout : new FileStream(
             file, fileMode, FileAccess.Write, FileShare.ReadWrite, bufferSize: 1);
     }
     catch (IOException ex)
     {
-        // Reflection disabled, unable to get the actual type name.
-        Console.Error.WriteLine($"{nameof(IOException)}: {ex.Message}");
+        Console.Error.WriteLine($"{ex.GetType()}: {ex.Message}");
         return Stream.Null;
     }
     catch (SystemException ex)
     {
-        Console.Error.WriteLine($"{nameof(SystemException)}: {ex.Message}");
+        Console.Error.WriteLine($"{ex.GetType()}: {ex.Message}");
         return Stream.Null;
     }
 }
@@ -84,7 +84,7 @@ static partial class Program
         var cmdPath = Environment.GetCommandLineArgs()[0].AsSpan();
         var cmdName = Path.GetFileNameWithoutExtension(cmdPath);
         var cmdExt = Path.GetExtension(cmdPath);
-        var hasPathExt = Environment.OSVersion.Platform < PlatformID.Unix;
+        var hasPathExt = OperatingSystem.IsWindows();
         return (hasPathExt && (cmdExt.Length > 0)) ?
             $"{cmdName}[{cmdExt}]" : Path.GetFileName(cmdPath).ToString();
     }
