@@ -78,11 +78,7 @@ let openFileOrNull (stdout: Stream) append file =
         // Don't use the Windows Overlapped I/O on local files to avoid overhead.
         if file = "-" then stdout else new FileStream(
             file, fileMode, FileAccess.Write, FileShare.ReadWrite, bufferSize = 1)
-    with
-    | :? IOException as ex ->
-        Console.Error.WriteLine($"{ex.GetType()}: {ex.Message}")
-        Stream.Null
-    | :? SystemException as ex ->
+    with ex ->
         Console.Error.WriteLine($"{ex.GetType()}: {ex.Message}")
         Stream.Null
 
@@ -107,8 +103,7 @@ let rec copyInput (stdin: Stream, stdout: Stream, streams: Stream[])
     | length ->
         let streamTasks = streams |> Array.map _.WriteAsync(buffer, 0, length)
         let stdoutTask = stdout.WriteAsync(buffer, 0, length)
-        copyInput (stdin, stdout, streams)
-            (lastBuffer, buffer) (stdoutTask, streamTasks)
+        copyInput (stdin, stdout, streams) (lastBuffer, buffer) (stdoutTask, streamTasks)
 
 [<EntryPoint>]
 let main args =

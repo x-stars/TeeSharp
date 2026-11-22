@@ -65,12 +65,7 @@ static Stream OpenFileOrNull(string file, bool append, Stream stdout)
         return (file == "-") ? stdout : new FileStream(
             file, fileMode, FileAccess.Write, FileShare.ReadWrite, bufferSize: 1);
     }
-    catch (IOException ex)
-    {
-        Console.Error.WriteLine($"{ex.GetType()}: {ex.Message}");
-        return Stream.Null;
-    }
-    catch (SystemException ex)
+    catch (Exception ex)
     {
         Console.Error.WriteLine($"{ex.GetType()}: {ex.Message}");
         return Stream.Null;
