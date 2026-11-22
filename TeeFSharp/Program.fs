@@ -11,7 +11,7 @@ type CommandOptions =
         Files: string list
     }
 
-    // Reflection disabled, unable to use the auto-generated Printf module-based ToString().
+    // Disable the auto-generated Printf-based ToString() when reflection disabled.
     override _.ToString() = nameof CommandOptions
 
     static member TryParse(args: string[]) =
@@ -40,15 +40,14 @@ let commandName =
     let cmdPath = Environment.GetCommandLineArgs().[0]
     let cmdName = Path.GetFileNameWithoutExtension(cmdPath)
     let cmdExt = Path.GetExtension(cmdPath)
-    let hasPathExt = Environment.OSVersion.Platform < PlatformID.Unix
-    // Don't use interpolated strings when reflection disabled.
+    let hasPathExt = OperatingSystem.IsWindows()
     if hasPathExt && (cmdExt.Length > 0)
-        then cmdName + "[" + cmdExt + "]" else Path.GetFileName(cmdPath)
+        then $"{cmdName}[{cmdExt}]" else Path.GetFileName(cmdPath)
 
 let helpMessage = seq {
     // Don't use multi-line string literals to avoid hard-coding the newline sequence.
-    "Usage: " + commandName + " [OPTION]... [FILE]..."
-    "Copy standard input to each FILE, and also to standard output."
+    $"Usage: {commandName} [OPTION]... [FILE]..."
+    $"Copy standard input to each FILE, and also to standard output."
     ""
     "    -a, --append            Append to the given FILEs, do not overwrite."
     "    -b, --buffer-size N     Buffer size N using in copying, default to 4096."
@@ -58,15 +57,14 @@ let helpMessage = seq {
 }
 
 let invalidOptMessage (option: string) = seq {
-    "Invalid option: " + option
-    "Try '" + commandName + " --help' for more information."
+    $"Invalid option: {option}"
+    $"Try '{commandName} --help' for more information."
 }
 
 let parseCmdOpts args =
     match CommandOptions.TryParse(args) with
     | Error invalidOpt ->
-        invalidOptMessage invalidOpt
-        |> Seq.iter Console.Error.WriteLine
+        invalidOptMessage invalidOpt |> Seq.iter Console.Error.WriteLine
         Error 1
     | Ok cmdOpts when cmdOpts.Help ->
         // Don't use the Printf module when reflection disabled.
@@ -77,15 +75,11 @@ let parseCmdOpts args =
 let openFileOrNull (stdout: Stream) append file =
     try
         let fileMode = if append then FileMode.Append else FileMode.Create
+        // Don't use the Windows Overlapped I/O on local files to avoid overhead.
         if file = "-" then stdout else new FileStream(
             file, fileMode, FileAccess.Write, FileShare.ReadWrite, bufferSize = 1)
-    with
-    | :? IOException as ex ->
-        // Reflection disabled, unable to get the actual type name.
-        Console.Error.WriteLine((nameof IOException) + ": " + ex.Message)
-        Stream.Null
-    | :? SystemException as ex ->
-        Console.Error.WriteLine((nameof SystemException) + ": " + ex.Message)
+    with ex ->
+        Console.Error.WriteLine($"{ex.GetType()}: {ex.Message}")
         Stream.Null
 
 let openStreams cmdOpts =
@@ -109,8 +103,7 @@ let rec copyInput (stdin: Stream, stdout: Stream, streams: Stream[])
     | length ->
         let streamTasks = streams |> Array.map _.WriteAsync(buffer, 0, length)
         let stdoutTask = stdout.WriteAsync(buffer, 0, length)
-        copyInput (stdin, stdout, streams)
-            (lastBuffer, buffer) (stdoutTask, streamTasks)
+        copyInput (stdin, stdout, streams) (lastBuffer, buffer) (stdoutTask, streamTasks)
 
 [<EntryPoint>]
 let main args =
