@@ -61,33 +61,24 @@ let invalidOptMessage (option: string) = seq {
     $"Try '{commandName} --help' for more information."
 }
 
-let parseCmdOpts args =
-    match CommandOptions.TryParse(args) with
-    | Error invalidOpt ->
-        invalidOptMessage invalidOpt |> Seq.iter Console.Error.WriteLine
-        Error 1
-    | Ok cmdOpts when cmdOpts.Help ->
-        // Don't use the Printf module when reflection disabled.
-        helpMessage |> Seq.iter Console.Out.WriteLine
-        Error 0
-    | Ok cmdOpts -> Ok cmdOpts
-
-let openFileOrNull (stdout: Stream) append file =
+let tryOpenFile (stdout: Stream) append file =
     try
         let fileMode = if append then FileMode.Append else FileMode.Create
         // Don't use the Windows Overlapped I/O on local files to avoid overhead.
-        if file = "-" then stdout else new FileStream(
-            file, fileMode, FileAccess.Write, FileShare.ReadWrite, bufferSize = 1)
+        Ok (if file = "-" then stdout else new FileStream(
+            file, fileMode, FileAccess.Write, FileShare.ReadWrite, bufferSize = 1))
     with ex ->
-        Console.Error.WriteLine($"{ex.GetType()}: {ex.Message}")
-        Stream.Null
+        Error $"{ex.GetType()}: {ex.Message}"
 
 let openStreams cmdOpts =
     let stdin = Console.OpenStandardInput()
     let stdout = Console.OpenStandardOutput()
     let files = cmdOpts.Files |> List.toArray
-    let streams = files |> Array.map (openFileOrNull stdout cmdOpts.Append)
-    struct (stdin, stdout, streams, cmdOpts.BufferSize)
+    let streamResults = files |> Array.map (tryOpenFile stdout cmdOpts.Append)
+    let streams = streamResults |> Array.map (Result.defaultValue Stream.Null)
+    let getError = function | Ok _ -> null | Error value -> value
+    let errors = streamResults |> Seq.map getError |> Seq.filter (not << isNull)
+    struct (stdin, stdout, streams, errors)
 
 let rec copyInput (stdin: Stream, stdout: Stream, streams: Stream[])
                   (buffer: byte[], lastBuffer: byte[])
@@ -107,19 +98,23 @@ let rec copyInput (stdin: Stream, stdout: Stream, streams: Stream[])
 
 [<EntryPoint>]
 let main args =
-    let parseAndOpenResult =
-        Ok args
-        |> Result.bind parseCmdOpts
-        |> Result.map openStreams
-    match parseAndOpenResult with
-    | Error exitCode -> exitCode
-    | Ok (stdin, stdout, streams, bufferSize) ->
+    match CommandOptions.TryParse(args) with
+    | Error invalidOpt ->
+        invalidOptMessage invalidOpt |> Seq.iter stderr.WriteLine
+        1
+    | Ok cmdOpts when cmdOpts.Help ->
+        // Don't use the Printf module when reflection disabled.
+        helpMessage |> Seq.iter stdout.WriteLine
+        0
+    | Ok cmdOpts ->
+        let struct (stdin, stdout, streams, errors) = openStreams cmdOpts
+        errors |> Seq.iter stderr.WriteLine
         use _ = stdin
         use _ = stdout
         use _ = { new IDisposable with
             member _.Dispose() = streams |> Array.iter _.Dispose()
         }
         copyInput (stdin, stdout, streams)
-            (Array.zeroCreate bufferSize, Array.zeroCreate bufferSize)
+            (Array.zeroCreate cmdOpts.BufferSize, Array.zeroCreate cmdOpts.BufferSize)
             (Task.CompletedTask, streams |> Array.map (fun _ -> Task.CompletedTask))
-        if streams |> Array.contains Stream.Null then 2 else 0
+        if Seq.isEmpty errors then 0 else 2
